@@ -1,10 +1,3 @@
-diff --git a/documentation b/documentation
-index 7fb00e0acf0..08dc81e128e 160000
---- a/documentation
-+++ b/documentation
-@@ -1 +1 @@
--Subproject commit 7fb00e0acf04c73ae6467eab035fa2ebba1ae418
-+Subproject commit 08dc81e128e6259038d411f636a7159d5150169f
 diff --git a/source/code_templates/generate_templates.py b/source/code_templates/generate_templates.py
 index affa340b12a..74696f751bc 100755
 --- a/source/code_templates/generate_templates.py
@@ -32491,10 +32484,3 @@ index 00000000000..6f59cf0c413
 +# lines that start with ‘#’ symbol treated as comments and ignored
 +
 +master:vmulligan@flatironinstitute.org
-diff --git a/tools b/tools
-index 81178c0043a..f655c25bae7 160000
---- a/tools
-+++ b/tools
-@@ -1 +1 @@
--Subproject commit 81178c0043a834df249846577d799afbf7c68ec5
-+Subproject commit f655c25bae76080a7a13e634c58f8a95ac854e09
