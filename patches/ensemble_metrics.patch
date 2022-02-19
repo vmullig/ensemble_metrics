@@ -533,10 +533,10 @@ index 8a8d54c4e68..48d048c5b10 100644
  		"JumpSelectorLoader",
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
 new file mode 100644
-index 00000000000..2f201e031b4
+index 00000000000..83ff4a7db01
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
-@@ -0,0 +1,762 @@
+@@ -0,0 +1,767 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -882,6 +882,11 @@ index 00000000000..2f201e031b4
 +		set_output_mode( tag->getOption< std::string >( "output_mode" ) );
 +	}
 +	if ( tag->hasOption( "output_filename" ) ) {
++		runtime_assert_string_msg(
++			output_mode_ != EnsembleMetricOutputMode::TRACER,
++			"Error in EnsembleMetric::parse_common_ensemble_metric_options(): The output filename was set, but output "
++			"mode is set to tracer only!  This must be set to \"file\" or \"tracer_and_file\"."
++		);
 +		set_output_filename( tag->getOption< std::string >( "output_filename" ) );
 +	}
 +}
