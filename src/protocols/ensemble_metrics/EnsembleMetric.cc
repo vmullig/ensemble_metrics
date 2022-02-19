@@ -343,6 +343,11 @@ EnsembleMetric::parse_common_ensemble_metric_options(
 		set_output_mode( tag->getOption< std::string >( "output_mode" ) );
 	}
 	if ( tag->hasOption( "output_filename" ) ) {
+		runtime_assert_string_msg(
+			output_mode_ != EnsembleMetricOutputMode::TRACER,
+			"Error in EnsembleMetric::parse_common_ensemble_metric_options(): The output filename was set, but output "
+			"mode is set to tracer only!  This must be set to \"file\" or \"tracer_and_file\"."
+		);
 		set_output_filename( tag->getOption< std::string >( "output_filename" ) );
 	}
 }
