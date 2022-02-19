@@ -14,9 +14,15 @@ Vikram K. Mulligan (vmulligan@flatironinstitute.org)
 
 The `patches/` directory contains the following patchfile(s), which can be used to add `EnsembleMetrics` to Rosetta.  Note that the intention is for these to be incorporated into the public releases of Rosetta in the near future.
 
-Name | Description | Rosetta Git SHA to which this patch applies
----- | ----------- | -------------------------------------------
-ensemble_metrics.patch | The `EnsembleMetrics` base class, plus the derived `CentralTendencyEnsembleMetric` (which measures mean, median, mode, _etc._ of an input value produced by a Rosetta `SimpleMetric`). | ba63a80f6a64890fca6b4eddf149ec47f9ab428e (master branch, 18 February 2022).
+Name | Description | Can be applied to
+---- | ----------- | -----------------
+ensemble_metrics.patch | The `EnsembleMetrics` base class, plus the derived `CentralTendencyEnsembleMetric` (which measures mean, median, mode, _etc._ of an input value produced by a Rosetta `SimpleMetric`). | Rosetta Git SHA ba63a80f6a64890fca6b4eddf149ec47f9ab428e (master branch, 18 February 2022).
+
+Patchfiles can be applied by navigating to your `Rosetta/main` directory (_e.g._ `cd my_rosetta_installation/Rosetta/main`), copying the patchfile to the current directory, and using the Linux `patch` command:
+
+```sh
+patch -p1 < ensemble_metrics.patch
+```
 
 ### Adapting for other software projects
 
