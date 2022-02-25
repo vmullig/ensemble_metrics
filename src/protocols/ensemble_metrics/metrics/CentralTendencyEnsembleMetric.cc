@@ -62,6 +62,11 @@
 #include <basic/citation_manager/UnpublishedModuleInfo.hh>
 #include <basic/citation_manager/CitationCollection.hh>
 
+#ifdef USEMPI
+#include <mpi.h>
+#include <type_traits>
+#endif
+
 #ifdef    SERIALIZATION
 // Utility serialization headers
 #include <utility/serialization/serialization.hh>
@@ -295,6 +300,114 @@ CentralTendencyEnsembleMetric::provide_citation_info(
 		)
 	);
 }
+
+////////////////////////////////////////////////////////////////////////////////
+// PUBLIC MPI PARALLEL COMMUNICATION FUNCTIONS
+////////////////////////////////////////////////////////////////////////////////
+
+#ifdef USEMPI
+
+/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
+/// sampled in a distributed manner?  Overrides base class and returns true.
+/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
+/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
+/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
+/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
+/// function exits with an error, so any derived class that fails to override these functions cannot
+/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
+/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
+/// false, and derived classes must override this to return true if the derived class supports MPI.  This
+/// function is called by the parse_common_ensemble_metric_options() function if the configuration
+/// has been set for MPI-based collection at the end.
+bool
+CentralTendencyEnsembleMetric::supports_mpi() const {
+	return true;
+}
+
+/// @brief Send all of the data collected by this EnsembleMetric to another node.  Overrides base class.
+/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
+/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
+/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
+/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
+/// function exits with an error, so any derived class that fails to override these functions cannot
+/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
+/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
+/// false, and derived classes must override this to return true if the derived class supports MPI.  This
+/// function is called by the parse_common_ensemble_metric_options() function if the configuration
+/// has been set for MPI-based collection at the end.
+/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
+/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
+void
+CentralTendencyEnsembleMetric::send_mpi_summary(
+	core::Size const receiving_node_index
+) const {
+	static_assert( std::is_same< double, core::Real >::value, "Compile-time error!  MPI communication requires that core::Real is defined as a double-precision float." ); //We're in trouble if someone has redefined Real.
+	static_assert( std::is_same< unsigned long int, core::Size >::value, "Compile-time error!  MPI communication requires that core::Size is defined as an unsigned long integer." );
+
+	//Note that we have to use int and double for MPI:
+	int const n_poses_seen( static_cast< int >( poses_in_ensemble() ) );
+	debug_assert(n_poses_seen >= 0 ); //Must be true.
+	runtime_assert( static_cast<core::Size>(n_poses_seen) == values_.size() ); //Should be true.
+
+	//Transmit the number of values:
+	MPI_Send( static_cast< const void * >( &n_poses_seen ), 1, MPI_INT, static_cast<int>(receiving_node_index), 0, MPI_COMM_WORLD );
+	//Transmit the array of values:
+	if( n_poses_seen > 0 ) {
+		MPI_Send( static_cast< const void * >( values_.data() ), n_poses_seen, MPI_DOUBLE, static_cast<int>(receiving_node_index), 0, MPI_COMM_WORLD );
+	}
+}
+
+/// @brief Receive all of the data collected by this EnsembleMetric on another node.  Overrides base class.
+/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
+/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
+/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
+/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
+/// function exits with an error, so any derived class that fails to override these functions cannot
+/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
+/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
+/// false, and derived classes must override this to return true if the derived class supports MPI.  This
+/// function is called by the parse_common_ensemble_metric_options() function if the configuration
+/// has been set for MPI-based collection at the end.
+/// @returns Originating process index that generated the data that this process received.
+/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
+/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
+core::Size
+CentralTendencyEnsembleMetric::recv_mpi_summary() {
+	static_assert( std::is_same< double, core::Real >::value, "Compile-time error!  MPI communication requires that core::Real is defined as a double-precision float." ); //We're in trouble if someone has redefined Real.
+	static_assert( std::is_same< unsigned long int, core::Size >::value, "Compile-time error!  MPI communication requires that core::Real is defined as a double-precision float." );
+
+	//Note that we have to use int and double for MPI:
+	int n_additional_poses(-1);
+
+	//Status object:
+	MPI_Status mystatus;
+	int originating_proc(-1);
+
+	//Receive the number of values:
+	MPI_Recv( static_cast< void * >( &n_additional_poses ), 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &mystatus);
+
+	//Check what we've got:
+	runtime_assert( n_additional_poses >= 0 );
+	originating_proc = mystatus.MPI_SOURCE; //The node that sent the message.
+	runtime_assert( originating_proc >= 0 );
+	if( n_additional_poses == 0 ) return static_cast< core::Size >( originating_proc );
+
+	//Allocate storage for what we're about to receive.
+	core::Size const oldsize( values_.size() );
+	values_.resize( oldsize + n_additional_poses );
+
+	//From the same process, receive the list of values.
+	MPI_Recv( static_cast< void * >( values_.data() + oldsize ), n_additional_poses, MPI_DOUBLE, originating_proc, 0, MPI_COMM_WORLD, &mystatus);
+	runtime_assert( mystatus.MPI_SOURCE == originating_proc ); //Should be true.
+
+	//Update the number of poses we've seen:
+	increment_poses_in_ensemble( static_cast< core::Size >( n_additional_poses ) );
+
+	//Return the index of the originating proc:
+	return static_cast< core::Size >( originating_proc );
+}
+
+#endif //USEMPI
 
 ////////////////////////////////////////////////////////////////////////////////
 // Private functions for this subclass
