@@ -16,8 +16,8 @@ The `patches/` directory contains the following patchfile(s), which can be used 
 
 Name | Description | Can be applied to
 ---- | ----------- | -----------------
-ensemble_metrics.patch | The `EnsembleMetrics` base class, plus the derived `CentralTendencyEnsembleMetric` (which measures mean, median, mode, _etc._ of an input value produced by a Rosetta `SimpleMetric`). | Rosetta Git SHA ba63a80f6a64890fca6b4eddf149ec47f9ab428e (master branch, 18 February 2022).
-mpi_support.patch | Adds support for analysing a large ensemble of poses on a cluster using MPI (massive parallelism). | Rosetta Git SHA e383521fc338ed44643b745f951bc00639eaaad4 (master branch + ensemble_metrics.patch, 24 February 2022).
+ensemble\_metrics.patch | The `EnsembleMetrics` base class, plus the derived `CentralTendencyEnsembleMetric` (which measures mean, median, mode, _etc._ of an input value produced by a Rosetta `SimpleMetric`). | Rosetta Git SHA 04818514c8b43967fc1c64bb3eab3b3eefe66b09 (master branch, 24 February 2022).
+mpi\_support.patch | Adds support for analysing a large ensemble of poses on a cluster using MPI (massive parallelism). | Rosetta Git SHA bc0a79bcc5f6dfa4cec3c66bbbd8cd13cd0a2072 (master branch + ensemble\_metrics.patch, 25 February 2022).
 
 Patchfiles can be applied by navigating to your `Rosetta/main` directory (_e.g._ `cd my_rosetta_installation/Rosetta/main`), copying the patchfile to the current directory, and using the Linux `patch` command:
 
