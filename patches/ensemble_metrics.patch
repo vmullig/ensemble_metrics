@@ -16,7 +16,7 @@ index affa340b12a..74696f751bc 100755
                        "   "+self.get_base_outdir()+"/"+"protocols/init/init.SimpleMetricRegistrators.ihh and \n" \
 diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.cc b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
 new file mode 100644
-index 00000000000..6bf26263434
+index 00000000000..9f2bfbdb491
 --- /dev/null
 +++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
 @@ -0,0 +1,276 @@
@@ -150,7 +150,7 @@ index 00000000000..6bf26263434
 +/// @brief Given a metric name, get its value.
 +/// @details Must be implemented by derived classes.
 +core::Real
-+--class--::derived_get_metric_by_name(
++--class--::derived_get_real_metric_value_by_name(
 +	std::string const & metric_name
 +) const {
 +	debug_assert( metric_names_for_class.has_value( metric_name ) );
@@ -161,7 +161,7 @@ index 00000000000..6bf26263434
 +	// } else if( metric_name == "BBBBB" ) {
 +	// 	return YYY;
 +	// } else {
-+	// 	utility_exit_with_message( "Error in --class--::derived_get_metric_by_name(): \"" + metric_name + "\" is not a metric that the " + name() + " ensemble metric returns." );
++	// 	utility_exit_with_message( "Error in --class--::derived_get_real_metric_value_by_name(): \"" + metric_name + "\" is not a metric that the " + name() + " ensemble metric returns." );
 +	// }
 +
 +	return 0.0; //Keep older compilers happy.
@@ -298,7 +298,7 @@ index 00000000000..6bf26263434
 +#endif // SERIALIZATION
 diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.hh b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
 new file mode 100644
-index 00000000000..75ddc5975b1
+index 00000000000..3a4654a1af1
 --- /dev/null
 +++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
 @@ -0,0 +1,147 @@
@@ -382,7 +382,7 @@ index 00000000000..75ddc5975b1
 +	/// @brief Given a metric name, get its value.
 +	/// @details Must be implemented by derived classes.
 +	core::Real
-+	derived_get_metric_by_name(
++	derived_get_real_metric_value_by_name(
 +		std::string const & metric_name
 +	) const override;
 +
@@ -533,10 +533,10 @@ index 8a8d54c4e68..48d048c5b10 100644
  		"JumpSelectorLoader",
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
 new file mode 100644
-index 00000000000..83ff4a7db01
+index 00000000000..1410d90c618
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
-@@ -0,0 +1,767 @@
+@@ -0,0 +1,772 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -716,7 +716,7 @@ index 00000000000..83ff4a7db01
 +/// (2) If the previous mover was not a multiple pose mover and a parsed protocol was provided, it runs the
 +/// parsed protocol N times, calling add_pose_to_ensemble() on each pose generated, then provides its report.
 +/// (3) If the previous mover is not a multiple pose mover and no parsed protocol has been provided,
-+/// it calls the implmentation of add_pose_to_ensemble() for the current pose, storing data about the
++/// it calls the implementation of add_pose_to_ensemble() for the current pose, storing data about the
 +/// current pose.  The report is not provided until the end of the RosettaScripts script, or when
 +/// produce_final_report() is called.
 +/// @note This function is deliberately NOT virtual.  The overrides are in add_pose_to_ensemble(), which
@@ -744,8 +744,6 @@ index 00000000000..83ff4a7db01
 +		generate_ensemble_and_apply_to_poses( pose );
 +		produce_final_report();
 +	}
-+
-+	//TODO TODO TODO MULTIPLE POSE MOVERS
 +}
 +
 +////////////////////////////////////////////////////////////////////////////////
@@ -779,7 +777,6 @@ index 00000000000..83ff4a7db01
 +////////////////////////////////////////////////////////////////////////////////
 +
 +/// @brief Generate the type name for the RosettaScripts XSD.
-+/*static*/
 +utility::tag::XMLSchemaComplexTypeGeneratorOP
 +EnsembleMetric::complex_type_generator_for_ensemble_metric(
 +	utility::tag::XMLSchemaDefinition const & /*xsd*/
@@ -789,38 +786,37 @@ index 00000000000..83ff4a7db01
 +	AttributeList attlist;
 +
 +	attlist
-+		+ XMLSchemaAttribute::attribute_w_default( "label_prefix", xs_string,
-+		"If provided, this prefix is prepended to the label for this ensemble metric (with an underscore after the prefix and before the ensemble metric name).",
-+		""
++		+ XMLSchemaAttribute( "label_prefix", xs_string,
++		"If provided, this prefix is prepended to the label for this ensemble metric (with an underscore after the "
++		"prefix and before the ensemble metric name)."
 +		)
-+		+ XMLSchemaAttribute::attribute_w_default( "label_suffix", xs_string,
-+		"If provided, this suffix is appended to the label for this ensemble metric (with an underscore after the ensemble metric name and before the suffix).",
-+		""
++		+ XMLSchemaAttribute( "label_suffix", xs_string,
++		"If provided, this suffix is appended to the label for this ensemble metric (with an underscore after the "
++		"ensemble metric name and before the suffix)."
 +		)
 +		+ XMLSchemaAttribute::attribute_w_default( "output_mode", xs_string,
 +		"The output mode for reports from this ensemble metric.  Default is 'tracer'.  Allowed modes are: 'tracer', "
 +		"'tracer_and_file', or 'file'.",
 +		"tracer"
 +		)
-+		+ XMLSchemaAttribute::attribute_w_default( "output_filename", xs_string,
++		+ XMLSchemaAttribute( "output_filename", xs_string,
 +		"The file to which the ensemble metric report will be written if output mode is 'tracer_and_file' or 'file'.  Note that "
-+		"this filename will have the job name and number prepended so that each report is unique.",
-+		""
++		"this filename will have the job name and number prepended so that each report is unique."
 +		)
-+		+ XMLSchemaAttribute::attribute_w_default( "ensemble_generating_protocol", xs_string,
++		+ XMLSchemaAttribute( "ensemble_generating_protocol", xs_string,
 +		"An optional ParsedProtocol or other mover for generating an ensemble from the current pose.  "
 +		"This protocol will be applied repeatedly (ensemble_generating_protocol_repeats times) to generate "
 +		"the ensemble of structures.  Each generated pose will be measured by this metric, then discarded.  "
 +		"The ensemble properties are then reported.  If not provided, the current pose is measured and the "
-+		"report will be produced later (e.g. at termination with the JD2 rosetta_scripts application).",
-+		""
++		"report will be produced later (e.g. at termination with the JD2 rosetta_scripts application)."
 +		)
-+		+ XMLSchemaAttribute::attribute_w_default( "ensemble_generating_protocol_repeats", xs_string,
++		+ XMLSchemaAttribute::attribute_w_default( "ensemble_generating_protocol_repeats", xsct_non_negative_integer,
 +		"The number of times that the ensemble_generating_protocol is applied.  This is the maximum "
 +		"number of structures in the ensemble (though the actual number may be smaller if "
 +		"the protocol contains filters or movers that can fail for some attempts).  Only used if an "
-+		"ensemble-generating protocol is provided with the ensemble_generating_protocol option.",
-+		""
++		"ensemble-generating protocol is provided with the ensemble_generating_protocol option.  Defaults "
++		"to 1.",
++		"1"
 +		)
 +		+ XMLSchemaAttribute::attribute_w_default( "n_threads", xsct_non_negative_integer,
 +		"The number of threads to request for generating ensembles in parallel.  This is only used in "
@@ -1034,15 +1030,15 @@ index 00000000000..83ff4a7db01
 +}
 +
 +/// @brief Given a metric name, get its value.
-+/// @details Calls derived_get_metric_by_name().
++/// @details Calls derived_get_real_metric_value_by_name().
 +core::Real
-+EnsembleMetric::get_metric_by_name(
++EnsembleMetric::get_real_metric_value_by_name(
 +	std::string const & metric_name
 +) const {
-+	std::string const errmsg( "Error in EnsembleMetric::get_metric_by_name(): " );
++	std::string const errmsg( "Error in EnsembleMetric::get_real_metric_value_by_name(): " );
 +	runtime_assert_string_msg( finalized_, errmsg + "The final report has not yet been generated for the " + name() + " ensemble metric." );
 +	runtime_assert_string_msg( real_valued_metric_names().has_value( metric_name ), errmsg + "Metric name \"" + metric_name + "\" was requested, but the " + name() + " ensemble metric produces no such real-valued metric." );
-+	return derived_get_metric_by_name( metric_name );
++	return derived_get_real_metric_value_by_name( metric_name );
 +}
 +
 +/// @brief Get the ensemble generating protocol.
@@ -1209,14 +1205,14 @@ index 00000000000..83ff4a7db01
 +	core::pose::PoseOP my_pose( utility::pointer::make_shared< core::pose::Pose >() );
 +	protocols::moves::MoverOP my_protocol;
 +	{
-+		// Detached copy the pose.
 +#ifdef MULTI_THREADED
 +		std::lock_guard< std::mutex > lock( pose_mutex_ );
 +#endif
-+		my_pose->detached_copy( master_pose );
++		my_pose->detached_copy( master_pose ); // Detached copy the pose.
 +	}
++
++	// Clone the protocol.
 +	{
-+		// Clone the protocol.
 +#ifdef MULTI_THREADED
 +		std::lock_guard< std::mutex > lock( ensemble_generating_protocol_mutex_ );
 +#endif
@@ -1225,7 +1221,15 @@ index 00000000000..83ff4a7db01
 +
 +	core::Size counter(0);
 +
++	// The following loop is for getting output from a previous multiple
++	// pose mover.  The first pass applies the ensemble generating mover
++	// to an input pose.  If there's no multiple pose mover, we're done,
++	// and we return.  If there is a multiple pose mover, we keep looping
++	// and applying the protocol to each pose in turn until we run out
++	// of poses:
 +	do {
++		// Apply to the current pose.  If we're not using a multiple pose
++		// mover, return here if the mover fails on the primary pose.
 +		my_protocol->apply( *my_pose );
 +		if ( my_protocol->get_last_move_status() != protocols::moves::MoverStatus::MS_SUCCESS ) {
 +			if ( last_mover_copy == nullptr ) {
@@ -1247,6 +1251,7 @@ index 00000000000..83ff4a7db01
 +			}
 +		}
 +
++		// Get additional poses from the multiple pose mover, if any:
 +		if ( last_mover_copy != nullptr ) {
 +			my_pose->clear();
 +#ifdef MULTI_THREADED
@@ -1368,7 +1373,7 @@ index 00000000000..c65c24d5dd8
 +#endif //INCLUDED_protocols_ensemble_metrics_EnsembleMetric_fwd_hh
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.hh b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
 new file mode 100644
-index 00000000000..5c6050560b0
+index 00000000000..f858db3a802
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
 @@ -0,0 +1,481 @@
@@ -1522,7 +1527,7 @@ index 00000000000..5c6050560b0
 +	/// @details Must be implemented by derived classes.
 +	virtual
 +	core::Real
-+	derived_get_metric_by_name(
++	derived_get_real_metric_value_by_name(
 +		std::string const & metric_name
 +	) const = 0;
 +
@@ -1569,7 +1574,7 @@ index 00000000000..5c6050560b0
 +	/// (2) If the previous mover was not a multiple pose mover and a parsed protocol was provided, it runs the
 +	/// parsed protocol N times, calling add_pose_to_ensemble() on each pose generated, then provides its report.
 +	/// (3) If the previous mover is not a multiple pose mover and no parsed protocol has been provided,
-+	/// it calls the implmentation of add_pose_to_ensemble() for the current pose, storing data about the
++	/// it calls the implementation of add_pose_to_ensemble() for the current pose, storing data about the
 +	/// current pose.  The report is not provided until the end of the RosettaScripts script, or when
 +	/// produce_final_report() is called.
 +	/// @note This function is deliberately NOT virtual.  The overrides are in add_pose_to_ensemble(), which
@@ -1732,9 +1737,9 @@ index 00000000000..5c6050560b0
 +	poses_in_ensemble() const;
 +
 +	/// @brief Given a metric name, get its value.
-+	/// @details Calls derived_get_metric_by_name().
++	/// @details Calls derived_get_real_metric_value_by_name().
 +	core::Real
-+	get_metric_by_name(
++	get_real_metric_value_by_name(
 +		std::string const & metric_name
 +	) const;
 +
@@ -2403,7 +2408,7 @@ index 00000000000..2283865c860
 +#endif
 diff --git a/source/src/protocols/ensemble_metrics/filters/EnsembleFilter.cc b/source/src/protocols/ensemble_metrics/filters/EnsembleFilter.cc
 new file mode 100644
-index 00000000000..7ee43350722
+index 00000000000..bbca3f20231
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/filters/EnsembleFilter.cc
 @@ -0,0 +1,366 @@
@@ -2685,7 +2690,7 @@ index 00000000000..7ee43350722
 +	core::pose::Pose const &
 +) const {
 +	validate_my_configuration();
-+	core::Real const val( ensemble_metric_->get_metric_by_name( named_value_ ) );
++	core::Real const val( ensemble_metric_->get_real_metric_value_by_name( named_value_ ) );
 +	bool const passfail( value_passes(val) );
 +	TR << "EnsembleMetric " << ensemble_metric_->name() << " reports " << named_value_ << " = " << val;
 +	TR << ".  This " << (passfail ? "PASSES" : "FAILS") << " this filter." << std::endl;
@@ -2696,14 +2701,14 @@ index 00000000000..7ee43350722
 +EnsembleFilter::report_sm( core::pose::Pose const & ) const
 +{
 +	validate_my_configuration();
-+	return ensemble_metric_->get_metric_by_name( named_value_ );
++	return ensemble_metric_->get_real_metric_value_by_name( named_value_ );
 +}
 +
 +void
 +EnsembleFilter::report( std::ostream & os, core::pose::Pose const & ) const
 +{
 +	validate_my_configuration();
-+	core::Real const val( ensemble_metric_->get_metric_by_name( named_value_ ) );
++	core::Real const val( ensemble_metric_->get_real_metric_value_by_name( named_value_ ) );
 +	os << "EnsembleMetric " << ensemble_metric_->name() << " reports " << named_value_ << " = " << val;
 +	os << ".  This " << (value_passes(val) ? "PASSES" : "FAILS") << " this filter." << std::endl;
 +}
@@ -3108,7 +3113,7 @@ index 00000000000..30cf569d571
 +#endif //INCLUDED_protocols_ensemble_metrics_filters_EnsembleFilter_fwd_hh
 diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
 new file mode 100644
-index 00000000000..9379b748b91
+index 00000000000..2996222209d
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
 @@ -0,0 +1,500 @@
@@ -3287,7 +3292,7 @@ index 00000000000..9379b748b91
 +/// @brief Given a metric name, get its value.
 +/// @details Must be implemented by derived classes.
 +core::Real
-+CentralTendencyEnsembleMetric::derived_get_metric_by_name(
++CentralTendencyEnsembleMetric::derived_get_real_metric_value_by_name(
 +	std::string const & metric_name
 +) const {
 +	debug_assert( metric_names_for_class.has_value( metric_name ) );
@@ -3310,7 +3315,7 @@ index 00000000000..9379b748b91
 +	} else if ( metric_name == "range" ) {
 +		return range_;
 +	} else {
-+		utility_exit_with_message( "Error in CentralTendencyEnsembleMetric::derived_get_metric_by_name(): \"" + metric_name + "\" is not a metric that the " + name() + " ensemble metric returns." );
++		utility_exit_with_message( "Error in CentralTendencyEnsembleMetric::derived_get_real_metric_value_by_name(): \"" + metric_name + "\" is not a metric that the " + name() + " ensemble metric returns." );
 +	}
 +
 +	return 0.0; //Keep older compilers happy.
@@ -3371,9 +3376,9 @@ index 00000000000..9379b748b91
 +	using namespace core::simple_metrics;
 +
 +	AttributeList attlist;
-+	attlist + XMLSchemaAttribute::attribute_w_default(
++	attlist + XMLSchemaAttribute::required_attribute(
 +		"real_valued_metric", xs_string,
-+		"The name of a real-valued simple metric defined previously.  Required input.", ""
++		"The name of a real-valued simple metric defined previously.  Required input."
 +	);
 +
 +	protocols::ensemble_metrics::xsd_ensemble_metric_type_definition_w_attributes(
@@ -3677,7 +3682,7 @@ index 00000000000..c73defcf19d
 +#endif //INCLUDED_protocols_ensemble_metrics_metrics_CentralTendencyEnsembleMetric_fwd_hh
 diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
 new file mode 100644
-index 00000000000..e0fb0a5de0b
+index 00000000000..af62bfcba66
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
 @@ -0,0 +1,256 @@
@@ -3794,7 +3799,7 @@ index 00000000000..e0fb0a5de0b
 +	/// @brief Given a metric name, get its value.
 +	/// @details Must be implemented by derived classes.
 +	core::Real
-+	derived_get_metric_by_name(
++	derived_get_real_metric_value_by_name(
 +		std::string const & metric_name
 +	) const override;
 +
@@ -5820,7 +5825,7 @@ index ba9bf68ff2e..15b61b71c3c 100644
  		"EnvironmentJump",
 diff --git a/source/test/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetricTests.cxxtest.hh b/source/test/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetricTests.cxxtest.hh
 new file mode 100644
-index 00000000000..344701be0fa
+index 00000000000..4aab688223f
 --- /dev/null
 +++ b/source/test/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetricTests.cxxtest.hh
 @@ -0,0 +1,271 @@
@@ -6006,14 +6011,14 @@ index 00000000000..344701be0fa
 +		TS_ASSERT_EQUALS( ctmetric->poses_in_ensemble(), 5 );
 +		ctmetric->produce_final_report();
 +		TS_ASSERT( ctmetric->finalized() );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("mean"), 1.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("median"), 1.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("mode"), 1.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("stddev"), 0.632455532033676, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("stderr"), 0.282842712474619, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("max"), 2.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("min"), 0.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("range"), 2.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("mean"), 1.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("median"), 1.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("mode"), 1.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("stddev"), 0.632455532033676, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("stderr"), 0.282842712474619, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("max"), 2.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("min"), 0.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("range"), 2.0, 1.0e-6 );
 +
 +		TS_ASSERT_DELTA( ctmetric->mean(), 1.0, 1.0e-6 );
 +		TS_ASSERT_DELTA( ctmetric->median(), 1.0, 1.0e-6 );
@@ -6036,14 +6041,14 @@ index 00000000000..344701be0fa
 +		TS_ASSERT_EQUALS( ctmetric->poses_in_ensemble(), 7 );
 +		ctmetric->produce_final_report();
 +		TS_ASSERT( ctmetric->finalized() );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("mean"), 2.14285714285714, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("median"), 2.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("mode"), 2.5, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("stddev"), 1.24539969815448, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("stderr"), 0.470716840598808, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("max"), 4.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("min"), 0.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("range"), 4.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("mean"), 2.14285714285714, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("median"), 2.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("mode"), 2.5, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("stddev"), 1.24539969815448, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("stderr"), 0.470716840598808, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("max"), 4.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("min"), 0.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("range"), 4.0, 1.0e-6 );
 +
 +		TS_ASSERT_DELTA( ctmetric->mean(), 2.14285714285714, 1.0e-6 );
 +		TS_ASSERT_DELTA( ctmetric->median(), 2.0, 1.0e-6 );
@@ -6066,14 +6071,14 @@ index 00000000000..344701be0fa
 +		TS_ASSERT_EQUALS( ctmetric->poses_in_ensemble(), 8 );
 +		ctmetric->produce_final_report();
 +		TS_ASSERT( ctmetric->finalized() );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("mean"), 4.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("median"), 4.5, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("mode"), 6.5, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("stddev"), 2.64575131106459, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("stderr"), 0.935414346693485, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("max"), 7.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("min"), 0.0, 1.0e-6 );
-+		TS_ASSERT_DELTA( ctmetric->get_metric_by_name("range"), 7.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("mean"), 4.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("median"), 4.5, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("mode"), 6.5, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("stddev"), 2.64575131106459, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("stderr"), 0.935414346693485, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("max"), 7.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("min"), 0.0, 1.0e-6 );
++		TS_ASSERT_DELTA( ctmetric->get_real_metric_value_by_name("range"), 7.0, 1.0e-6 );
 +
 +		TS_ASSERT_DELTA( ctmetric->mean(), 4.0, 1.0e-6 );
 +		TS_ASSERT_DELTA( ctmetric->median(), 4.5, 1.0e-6 );
