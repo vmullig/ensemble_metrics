@@ -177,7 +177,7 @@ EnsembleMetric::output_mode_name_from_enum(
 /// (2) If the previous mover was not a multiple pose mover and a parsed protocol was provided, it runs the
 /// parsed protocol N times, calling add_pose_to_ensemble() on each pose generated, then provides its report.
 /// (3) If the previous mover is not a multiple pose mover and no parsed protocol has been provided,
-/// it calls the implmentation of add_pose_to_ensemble() for the current pose, storing data about the
+/// it calls the implementation of add_pose_to_ensemble() for the current pose, storing data about the
 /// current pose.  The report is not provided until the end of the RosettaScripts script, or when
 /// produce_final_report() is called.
 /// @note This function is deliberately NOT virtual.  The overrides are in add_pose_to_ensemble(), which
