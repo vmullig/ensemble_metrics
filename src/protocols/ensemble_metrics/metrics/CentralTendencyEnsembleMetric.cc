@@ -178,7 +178,7 @@ CentralTendencyEnsembleMetric::add_pose_to_ensemble(
 /// @brief Given a metric name, get its value.
 /// @details Must be implemented by derived classes.
 core::Real
-CentralTendencyEnsembleMetric::derived_get_metric_by_name(
+CentralTendencyEnsembleMetric::derived_get_real_metric_value_by_name(
 	std::string const & metric_name
 ) const {
 	debug_assert( metric_names_for_class.has_value( metric_name ) );
@@ -201,7 +201,7 @@ CentralTendencyEnsembleMetric::derived_get_metric_by_name(
 	} else if ( metric_name == "range" ) {
 		return range_;
 	} else {
-		utility_exit_with_message( "Error in CentralTendencyEnsembleMetric::derived_get_metric_by_name(): \"" + metric_name + "\" is not a metric that the " + name() + " ensemble metric returns." );
+		utility_exit_with_message( "Error in CentralTendencyEnsembleMetric::derived_get_real_metric_value_by_name(): \"" + metric_name + "\" is not a metric that the " + name() + " ensemble metric returns." );
 	}
 
 	return 0.0; //Keep older compilers happy.
@@ -262,9 +262,9 @@ CentralTendencyEnsembleMetric::provide_xml_schema(
 	using namespace core::simple_metrics;
 
 	AttributeList attlist;
-	attlist + XMLSchemaAttribute::attribute_w_default(
+	attlist + XMLSchemaAttribute::required_attribute(
 		"real_valued_metric", xs_string,
-		"The name of a real-valued simple metric defined previously.  Required input.", ""
+		"The name of a real-valued simple metric defined previously.  Required input."
 	);
 
 	protocols::ensemble_metrics::xsd_ensemble_metric_type_definition_w_attributes(

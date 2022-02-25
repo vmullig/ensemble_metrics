@@ -148,7 +148,7 @@ private: // Private pure virtual functions
 	/// @details Must be implemented by derived classes.
 	virtual
 	core::Real
-	derived_get_metric_by_name(
+	derived_get_real_metric_value_by_name(
 		std::string const & metric_name
 	) const = 0;
 
@@ -358,9 +358,9 @@ public: // Getters
 	poses_in_ensemble() const;
 
 	/// @brief Given a metric name, get its value.
-	/// @details Calls derived_get_metric_by_name().
+	/// @details Calls derived_get_real_metric_value_by_name().
 	core::Real
-	get_metric_by_name(
+	get_real_metric_value_by_name(
 		std::string const & metric_name
 	) const;
 

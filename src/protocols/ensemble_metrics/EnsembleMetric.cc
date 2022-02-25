@@ -222,8 +222,6 @@ EnsembleMetric::apply(
 		generate_ensemble_and_apply_to_poses( pose );
 		produce_final_report();
 	}
-
-	//TODO TODO TODO MULTIPLE POSE MOVERS
 }
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -257,7 +255,6 @@ EnsembleMetric::produce_final_report() {
 ////////////////////////////////////////////////////////////////////////////////
 
 /// @brief Generate the type name for the RosettaScripts XSD.
-/*static*/
 utility::tag::XMLSchemaComplexTypeGeneratorOP
 EnsembleMetric::complex_type_generator_for_ensemble_metric(
 	utility::tag::XMLSchemaDefinition const & /*xsd*/
@@ -267,38 +264,37 @@ EnsembleMetric::complex_type_generator_for_ensemble_metric(
 	AttributeList attlist;
 
 	attlist
-		+ XMLSchemaAttribute::attribute_w_default( "label_prefix", xs_string,
-		"If provided, this prefix is prepended to the label for this ensemble metric (with an underscore after the prefix and before the ensemble metric name).",
-		""
+		+ XMLSchemaAttribute( "label_prefix", xs_string,
+		"If provided, this prefix is prepended to the label for this ensemble metric (with an underscore after the "
+		"prefix and before the ensemble metric name)."
 		)
-		+ XMLSchemaAttribute::attribute_w_default( "label_suffix", xs_string,
-		"If provided, this suffix is appended to the label for this ensemble metric (with an underscore after the ensemble metric name and before the suffix).",
-		""
+		+ XMLSchemaAttribute( "label_suffix", xs_string,
+		"If provided, this suffix is appended to the label for this ensemble metric (with an underscore after the "
+		"ensemble metric name and before the suffix)."
 		)
 		+ XMLSchemaAttribute::attribute_w_default( "output_mode", xs_string,
 		"The output mode for reports from this ensemble metric.  Default is 'tracer'.  Allowed modes are: 'tracer', "
 		"'tracer_and_file', or 'file'.",
 		"tracer"
 		)
-		+ XMLSchemaAttribute::attribute_w_default( "output_filename", xs_string,
+		+ XMLSchemaAttribute( "output_filename", xs_string,
 		"The file to which the ensemble metric report will be written if output mode is 'tracer_and_file' or 'file'.  Note that "
-		"this filename will have the job name and number prepended so that each report is unique.",
-		""
+		"this filename will have the job name and number prepended so that each report is unique."
 		)
-		+ XMLSchemaAttribute::attribute_w_default( "ensemble_generating_protocol", xs_string,
+		+ XMLSchemaAttribute( "ensemble_generating_protocol", xs_string,
 		"An optional ParsedProtocol or other mover for generating an ensemble from the current pose.  "
 		"This protocol will be applied repeatedly (ensemble_generating_protocol_repeats times) to generate "
 		"the ensemble of structures.  Each generated pose will be measured by this metric, then discarded.  "
 		"The ensemble properties are then reported.  If not provided, the current pose is measured and the "
-		"report will be produced later (e.g. at termination with the JD2 rosetta_scripts application).",
-		""
+		"report will be produced later (e.g. at termination with the JD2 rosetta_scripts application)."
 		)
-		+ XMLSchemaAttribute::attribute_w_default( "ensemble_generating_protocol_repeats", xs_string,
+		+ XMLSchemaAttribute::attribute_w_default( "ensemble_generating_protocol_repeats", xsct_non_negative_integer,
 		"The number of times that the ensemble_generating_protocol is applied.  This is the maximum "
 		"number of structures in the ensemble (though the actual number may be smaller if "
 		"the protocol contains filters or movers that can fail for some attempts).  Only used if an "
-		"ensemble-generating protocol is provided with the ensemble_generating_protocol option.",
-		""
+		"ensemble-generating protocol is provided with the ensemble_generating_protocol option.  Defaults "
+		"to 1.",
+		"1"
 		)
 		+ XMLSchemaAttribute::attribute_w_default( "n_threads", xsct_non_negative_integer,
 		"The number of threads to request for generating ensembles in parallel.  This is only used in "
@@ -524,15 +520,15 @@ EnsembleMetric::poses_in_ensemble() const {
 }
 
 /// @brief Given a metric name, get its value.
-/// @details Calls derived_get_metric_by_name().
+/// @details Calls derived_get_real_metric_value_by_name().
 core::Real
-EnsembleMetric::get_metric_by_name(
+EnsembleMetric::get_real_metric_value_by_name(
 	std::string const & metric_name
 ) const {
-	std::string const errmsg( "Error in EnsembleMetric::get_metric_by_name(): " );
+	std::string const errmsg( "Error in EnsembleMetric::get_real_metric_value_by_name(): " );
 	runtime_assert_string_msg( finalized_, errmsg + "The final report has not yet been generated for the " + name() + " ensemble metric." );
 	runtime_assert_string_msg( real_valued_metric_names().has_value( metric_name ), errmsg + "Metric name \"" + metric_name + "\" was requested, but the " + name() + " ensemble metric produces no such real-valued metric." );
-	return derived_get_metric_by_name( metric_name );
+	return derived_get_real_metric_value_by_name( metric_name );
 }
 
 /// @brief Get the ensemble generating protocol.
@@ -790,14 +786,14 @@ EnsembleMetric::generate_one_ensemble_entry(
 	core::pose::PoseOP my_pose( utility::pointer::make_shared< core::pose::Pose >() );
 	protocols::moves::MoverOP my_protocol;
 	{
-		// Detached copy the pose.
 #ifdef MULTI_THREADED
 		std::lock_guard< std::mutex > lock( pose_mutex_ );
 #endif
-		my_pose->detached_copy( master_pose );
+		my_pose->detached_copy( master_pose ); // Detached copy the pose.
 	}
+
+	// Clone the protocol.
 	{
-		// Clone the protocol.
 #ifdef MULTI_THREADED
 		std::lock_guard< std::mutex > lock( ensemble_generating_protocol_mutex_ );
 #endif
@@ -806,7 +802,15 @@ EnsembleMetric::generate_one_ensemble_entry(
 
 	core::Size counter(0);
 
+	// The following loop is for getting output from a previous multiple
+	// pose mover.  The first pass applies the ensemble generating mover
+	// to an input pose.  If there's no multiple pose mover, we're done,
+	// and we return.  If there is a multiple pose mover, we keep looping
+	// and applying the protocol to each pose in turn until we run out
+	// of poses:
 	do {
+		// Apply to the current pose.  If we're not using a multiple pose
+		// mover, return here if the mover fails on the primary pose.
 		my_protocol->apply( *my_pose );
 		if ( my_protocol->get_last_move_status() != protocols::moves::MoverStatus::MS_SUCCESS ) {
 			if ( last_mover_copy == nullptr ) {
@@ -828,6 +832,7 @@ EnsembleMetric::generate_one_ensemble_entry(
 			}
 		}
 
+		// Get additional poses from the multiple pose mover, if any:
 		if ( last_mover_copy != nullptr ) {
 			my_pose->clear();
 #ifdef MULTI_THREADED

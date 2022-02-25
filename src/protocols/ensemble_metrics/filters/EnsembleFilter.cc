@@ -276,7 +276,7 @@ EnsembleFilter::apply(
 	core::pose::Pose const &
 ) const {
 	validate_my_configuration();
-	core::Real const val( ensemble_metric_->get_metric_by_name( named_value_ ) );
+	core::Real const val( ensemble_metric_->get_real_metric_value_by_name( named_value_ ) );
 	bool const passfail( value_passes(val) );
 	TR << "EnsembleMetric " << ensemble_metric_->name() << " reports " << named_value_ << " = " << val;
 	TR << ".  This " << (passfail ? "PASSES" : "FAILS") << " this filter." << std::endl;
@@ -287,14 +287,14 @@ core::Real
 EnsembleFilter::report_sm( core::pose::Pose const & ) const
 {
 	validate_my_configuration();
-	return ensemble_metric_->get_metric_by_name( named_value_ );
+	return ensemble_metric_->get_real_metric_value_by_name( named_value_ );
 }
 
 void
 EnsembleFilter::report( std::ostream & os, core::pose::Pose const & ) const
 {
 	validate_my_configuration();
-	core::Real const val( ensemble_metric_->get_metric_by_name( named_value_ ) );
+	core::Real const val( ensemble_metric_->get_real_metric_value_by_name( named_value_ ) );
 	os << "EnsembleMetric " << ensemble_metric_->name() << " reports " << named_value_ << " = " << val;
 	os << ".  This " << (value_passes(val) ? "PASSES" : "FAILS") << " this filter." << std::endl;
 }

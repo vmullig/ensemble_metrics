@@ -111,7 +111,7 @@ private: // Virtual functions overrides of private pure virtual functions from b
 	/// @brief Given a metric name, get its value.
 	/// @details Must be implemented by derived classes.
 	core::Real
-	derived_get_metric_by_name(
+	derived_get_real_metric_value_by_name(
 		std::string const & metric_name
 	) const override;
 
