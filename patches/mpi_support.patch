@@ -1,0 +1,877 @@
+diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.cc b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
+index 6bf26263434..1c91ca39fd3 100644
+--- a/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
++++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
+@@ -230,6 +230,89 @@ void
+ 	);
+ }
+ 
++////////////////////////////////////////////////////////////////////////////////
++// MPI parallel communication functions
++////////////////////////////////////////////////////////////////////////////////
++
++// In order to allow this ensemble metric to analyse
++// an ensemble generated in a distributed fashion, with
++// MPI, uncomment and implement the following function
++// overrides:
++
++/*
++#ifdef USEMPI
++
++/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
++/// sampled in a distributed manner?  Overrides base class and returns true.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++bool
++--class--::supports_mpi() const {
++	return true; //THIS SHOULD ONLY RETURN TRUE IF send_mpi_summary() AND recv_mpi_summary() HAVE IMPLEMENTATIONS FOR THIS SUBCLASS!
++}
++
++/// @brief Send all of the data collected by this EnsembleMetric to another node.  Overrides base class.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
++/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++void
++--class--::send_mpi_summary(
++	core::Size const receiving_node_index
++) const {
++	IMPLEMENT THIS TO ADD MPI SUPPORT.
++	See the CentralTendencyMetric for a guide.  This function
++	should transmit all data from poses observed in this process
++	to the master process, to allow it to perform whatever
++	ensemble analysis this EnsembleMetric performs.
++}
++
++/// @brief Receive all of the data collected by this EnsembleMetric on another node.  Overrides base class.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++/// @returns Originating process index that generated the data that this process received.
++/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
++/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++core::Size
++--class--::recv_mpi_summary() {
++	IMPLEMENT THIS TO ADD MPI SUPPORT.
++	See the CentralTendencyMetric for a guide.  This function is
++	called by the master process, allowing it to recive all data
++	from poses observed in another process.  This function is called
++	several times to allow collection of data from all worker
++	procseses.  This allows the master process to perform on all
++	samples seen by all worker processes whatever ensemble analysis
++	this EnsembleMetric performs.
++}
++
++#endif //USEMPI
++*/
++
++
+ ////////////////////////////////////////////////////////////////////////////////
+ // Creator functions
+ ////////////////////////////////////////////////////////////////////////////////
+diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.hh b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
+index 75ddc5975b1..0e46d80e9c8 100644
+--- a/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
++++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
+@@ -127,6 +127,64 @@ public: // Citation manager functions
+ 		basic::citation_manager::CitationCollectionList & citations
+ 	) const override;
+ 
++// In order to allow this ensemble metric to analyse
++// an ensemble generated in a distributed fashion, with
++// MPI, uncomment and implement the following function
++// overrides:
++
++/*
++public: // MPI functions
++
++#ifdef USEMPI
++
++	/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
++	/// sampled in a distributed manner?  Overrides base class and returns true.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	bool supports_mpi() const override;
++
++	/// @brief Send all of the data collected by this EnsembleMetric to another node.  Overrides base class.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
++	/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++	void send_mpi_summary( core::Size const receiving_node_index ) const override;
++
++	/// @brief Receive all of the data collected by this EnsembleMetric on another node.  Overrides base class.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	/// @returns Originating process index that generated the data that this process received.
++	/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
++	/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++	core::Size recv_mpi_summary() override;
++
++#endif //USEMPI
++*/
++
+ private: // Private data
+ 
+ 
+diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
+index 83ff4a7db01..0991aefc045 100644
+--- a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
++++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
+@@ -186,7 +186,24 @@ void
+ EnsembleMetric::apply(
+ 	core::pose::Pose const & pose
+ ) {
+-	runtime_assert_string_msg( finalized_ == false, "Error in EnsembleMetric::apply(): The " + name() + " ensemble metric has already been finalized (i.e. produced its final report).  The reset() function must be called before accumulating more data from fresh input poses." );
++	std::string const errmsg( "Error in EnsembleMetric::apply(): " );
++	runtime_assert_string_msg(
++		finalized_ == false, errmsg + "The " + name() + " ensemble metric "
++		"has already been finalized (i.e. produced its final report).  The reset() function "
++		"must be called before accumulating more data from fresh input poses."
++	);
++
++#ifdef USEMPI
++	if( ensemble_generating_protocol_ == nullptr && !use_additional_output_from_last_mover_ ) {
++		runtime_assert_string_msg(
++			supports_mpi(),
++			errmsg + "The " + name() + " ensemble metric does not support collection of results by "
++			"MPI.  To use this ensemble metric in an MPI context, you must provide an ensmeble-generating "
++			"protocol, or set the use_addtional_output_from_last_mover option to true."
++		);
++	}
++#endif
++
+ 	if ( ensemble_generating_protocol_ == nullptr ) {
+ 		++poses_in_ensemble_;
+ 		add_pose_to_ensemble( pose );
+@@ -350,6 +367,18 @@ EnsembleMetric::parse_common_ensemble_metric_options(
+ 		);
+ 		set_output_filename( tag->getOption< std::string >( "output_filename" ) );
+ 	}
++
++#ifdef USEMPI
++	if( ensemble_generating_protocol_ == nullptr && !use_additional_output_from_last_mover_ ) {
++		runtime_assert_string_msg(
++			supports_mpi(),
++			"Error in EnsembleMetric::parse_common_ensemble_metric_options(): The " + name() + " ensemble "
++			"metric does not support collection of results by MPI.  To use this ensemble metric in an MPI "
++			"context, you must provide an ensmeble-generating protocol, or set the "
++			"use_addtional_output_from_last_mover option to true."
++		);
++	}
++#endif
+ }
+ 
+ ////////////////////////////////////////////////////////////////////////////////
+@@ -528,6 +557,97 @@ EnsembleMetric::provide_citation_info(
+ 	//GNDN
+ }
+ 
++////////////////////////////////////////////////////////////////////////////////
++// PROTECTED FUNCTIONS
++////////////////////////////////////////////////////////////////////////////////
++
++/// @brief Allow derived classes to indicate that additional poses have been
++/// added to the ensemble.
++void
++EnsembleMetric::increment_poses_in_ensemble(
++	core::Size const n_additional_poses
++) {
++	poses_in_ensemble_ += n_additional_poses;
++}
++
++////////////////////////////////////////////////////////////////////////////////
++// PUBLIC MPI PARALLEL COMMUNICATION FUNCTIONS
++////////////////////////////////////////////////////////////////////////////////
++
++#ifdef USEMPI
++
++/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
++/// sampled in a distributed manner?  The default implementation returns false; derived classes that support
++/// MPI must override this to return true.  IF THIS FUNCTION IS OVERRIDDEN, BE SURE TO IMPLEMENT OVERRIDES
++/// FOR send_mpi_summary() AND recv_mpi_summary()!
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++bool
++EnsembleMetric::supports_mpi() const {
++	return false;
++}
++
++/// @brief Send all of the data collected by this EnsembleMetric to another node.  The base class implementation
++/// throws, so this must be overridden by any derived EnsembleMetric class that supports MPI.  IF THIS FUNCTION
++/// IS OVERRIDDEN, BE SURE TO IMPLEMENT OVERRIDES FOR recv_mpi_summary() AND supports_mpi()!
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
++/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++void
++EnsembleMetric::send_mpi_summary(
++	core::Size const /*receiving_node_index*/
++) const {
++	utility_exit_with_message( "Error in EnsembleMetric::send_mpi_summary(): The " + name() + " ensemble metric "
++		"does not support distributed ensemble generation and analysis with MPI.  This function must be overridden "
++		"to enable support."
++	);
++}
++
++/// @brief Receive all of the data collected by this EnsembleMetric on another node.  The base class implementation
++/// throws, so this must be overridden by any derived EnsembleMetric class that supports MPI.  IF THIS FUNCTION
++/// IS OVERRIDDEN, BE SURE TO IMPLEMENT OVERRIDES FOR send_mpi_summary() AND supports_mpi()!  Note that this should
++/// receive from any MPI process, and report the process index that it received from.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++/// @returns Originating process index that generated the data that this process received.
++/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
++/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++core::Size
++EnsembleMetric::recv_mpi_summary() {
++	utility_exit_with_message( "Error in EnsembleMetric::recv_mpi_summary(): The " + name() + " ensemble metric "
++		"does not support distributed ensemble generation and analysis with MPI.  This function must be overridden "
++		"to enable support."
++	);
++	return 0; //Keep older compiler happy.
++}
++
++#endif //USEMPI
++
+ ////////////////////////////////////////////////////////////////////////////////
+ // PRIVATE REPORTING FUNCTIONS
+ ////////////////////////////////////////////////////////////////////////////////
+diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.hh b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
+index 5c6050560b0..3b752d2b67a 100644
+--- a/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
++++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
+@@ -381,6 +381,70 @@ public: // Citation manager functions
+ 		basic::citation_manager::CitationCollectionList &
+ 	) const;
+ 
++protected:
++
++	/// @brief Allow derived classes to indicate that additional poses have been
++	/// added to the ensemble.
++	void increment_poses_in_ensemble( core::Size const n_additional_poses );
++
++public: // MPI functions
++
++#ifdef USEMPI
++
++	/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
++	/// sampled in a distributed manner?  The default implementation returns false; derived classes that support
++	/// MPI must override this to return true.  IF THIS FUNCTION IS OVERRIDDEN, BE SURE TO IMPLEMENT OVERRIDES
++	/// FOR send_mpi_summary() AND recv_mpi_summary()!
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	virtual bool supports_mpi() const;
++
++	/// @brief Send all of the data collected by this EnsembleMetric to another node.  The base class implementation
++	/// throws, so this must be overridden by any derived EnsembleMetric class that supports MPI.  IF THIS FUNCTION
++	/// IS OVERRIDDEN, BE SURE TO IMPLEMENT OVERRIDES FOR recv_mpi_summary() AND supports_mpi()!
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
++	/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++	virtual void send_mpi_summary( core::Size const receiving_node_index ) const;
++
++	/// @brief Receive all of the data collected by this EnsembleMetric on another node.  The base class implementation
++	/// throws, so this must be overridden by any derived EnsembleMetric class that supports MPI.  IF THIS FUNCTION
++	/// IS OVERRIDDEN, BE SURE TO IMPLEMENT OVERRIDES FOR send_mpi_summary() AND supports_mpi()!  Note that this should
++	/// receive from any MPI process, and report the process index that it received from.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	/// @returns Originating process index that generated the data that this process received.
++	/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
++	/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++	virtual core::Size recv_mpi_summary();
++
++#endif //USEMPI
++
+ private: // Private reporting functions
+ 
+ 	/// @brief Write the final report to the tracer.
+diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
+index 9379b748b91..3795320f681 100644
+--- a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
++++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
+@@ -62,6 +62,11 @@
+ #include <basic/citation_manager/UnpublishedModuleInfo.hh>
+ #include <basic/citation_manager/CitationCollection.hh>
+ 
++#ifdef USEMPI
++#include <mpi.h>
++#include <type_traits>
++#endif
++
+ #ifdef    SERIALIZATION
+ // Utility serialization headers
+ #include <utility/serialization/serialization.hh>
+@@ -296,6 +301,114 @@ CentralTendencyEnsembleMetric::provide_citation_info(
+ 	);
+ }
+ 
++////////////////////////////////////////////////////////////////////////////////
++// PUBLIC MPI PARALLEL COMMUNICATION FUNCTIONS
++////////////////////////////////////////////////////////////////////////////////
++
++#ifdef USEMPI
++
++/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
++/// sampled in a distributed manner?  Overrides base class and returns true.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++bool
++CentralTendencyEnsembleMetric::supports_mpi() const {
++	return true;
++}
++
++/// @brief Send all of the data collected by this EnsembleMetric to another node.  Overrides base class.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
++/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++void
++CentralTendencyEnsembleMetric::send_mpi_summary(
++	core::Size const receiving_node_index
++) const {
++	static_assert( std::is_same< double, core::Real >::value, "Compile-time error!  MPI communication requires that core::Real is defined as a double-precision float." ); //We're in trouble if someone has redefined Real.
++	static_assert( std::is_same< unsigned long int, core::Size >::value, "Compile-time error!  MPI communication requires that core::Size is defined as an unsigned long integer." );
++
++	//Note that we have to use int and double for MPI:
++	int const n_poses_seen( static_cast< int >( poses_in_ensemble() ) );
++	debug_assert(n_poses_seen >= 0 ); //Must be true.
++	runtime_assert( static_cast<core::Size>(n_poses_seen) == values_.size() ); //Should be true.
++
++	//Transmit the number of values:
++	MPI_Send( static_cast< const void * >( &n_poses_seen ), 1, MPI_INT, static_cast<int>(receiving_node_index), 0, MPI_COMM_WORLD );
++	//Transmit the array of values:
++	if( n_poses_seen > 0 ) {
++		MPI_Send( static_cast< const void * >( values_.data() ), n_poses_seen, MPI_DOUBLE, static_cast<int>(receiving_node_index), 0, MPI_COMM_WORLD );
++	}
++}
++
++/// @brief Receive all of the data collected by this EnsembleMetric on another node.  Overrides base class.
++/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++/// function exits with an error, so any derived class that fails to override these functions cannot
++/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++/// has been set for MPI-based collection at the end.
++/// @returns Originating process index that generated the data that this process received.
++/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
++/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++core::Size
++CentralTendencyEnsembleMetric::recv_mpi_summary() {
++	static_assert( std::is_same< double, core::Real >::value, "Compile-time error!  MPI communication requires that core::Real is defined as a double-precision float." ); //We're in trouble if someone has redefined Real.
++	static_assert( std::is_same< unsigned long int, core::Size >::value, "Compile-time error!  MPI communication requires that core::Real is defined as a double-precision float." );
++
++	//Note that we have to use int and double for MPI:
++	int n_additional_poses(-1);
++
++	//Status object:
++	MPI_Status mystatus;
++	int originating_proc(-1);
++
++	//Receive the number of values:
++	MPI_Recv( static_cast< void * >( &n_additional_poses ), 1, MPI_INT, MPI_ANY_SOURCE, 0, MPI_COMM_WORLD, &mystatus);
++
++	//Check what we've got:
++	runtime_assert( n_additional_poses >= 0 );
++	originating_proc = mystatus.MPI_SOURCE; //The node that sent the message.
++	runtime_assert( originating_proc >= 0 );
++	if( n_additional_poses == 0 ) return static_cast< core::Size >( originating_proc );
++
++	//Allocate storage for what we're about to receive.
++	core::Size const oldsize( values_.size() );
++	values_.resize( oldsize + n_additional_poses );
++
++	//From the same process, receive the list of values.
++	MPI_Recv( static_cast< void * >( values_.data() + oldsize ), n_additional_poses, MPI_DOUBLE, originating_proc, 0, MPI_COMM_WORLD, &mystatus);
++	runtime_assert( mystatus.MPI_SOURCE == originating_proc ); //Should be true.
++
++	//Update the number of poses we've seen:
++	increment_poses_in_ensemble( static_cast< core::Size >( n_additional_poses ) );
++
++	//Return the index of the originating proc:
++	return static_cast< core::Size >( originating_proc );
++}
++
++#endif //USEMPI
++
+ ////////////////////////////////////////////////////////////////////////////////
+ // Private functions for this subclass
+ ////////////////////////////////////////////////////////////////////////////////
+diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
+index e0fb0a5de0b..cd730dd0d72 100644
+--- a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
++++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
+@@ -156,6 +156,57 @@ public: // Citation manager functions
+ 		basic::citation_manager::CitationCollectionList & citations
+ 	) const override;
+ 
++public: // MPI functions
++
++#ifdef USEMPI
++
++	/// @brief Does this EnsembleMetric support MPI-based collection of ensemble properties from an ensemble
++	/// sampled in a distributed manner?  Overrides base class and returns true.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	bool supports_mpi() const override;
++
++	/// @brief Send all of the data collected by this EnsembleMetric to another node.  Overrides base class.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	/// @note This will do one or more MPI_Send operations!  It is intended only to be called by callers that can
++	/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++	void send_mpi_summary( core::Size const receiving_node_index ) const override;
++
++	/// @brief Receive all of the data collected by this EnsembleMetric on another node.  Overrides base class.
++	/// @details To collect results from many MPI processes at the end of a JD2 RosettaScripts run,
++	/// an EnsembleMetric must implement send_mpi_summary() and recv_mpi_summary().  The MPI JD2 job
++	/// distributor will ensure that all of the distributed instances of an EnsembleMetric synchronously
++	/// send their data to the master process EnsembleMetric instance, which receives it.  The base class
++	/// function exits with an error, so any derived class that fails to override these functions cannot
++	/// be used for MPI-distributed ensemble analysis.  To allow early catching of issues with EnsembleMetric
++	/// derived classes that do not support MPI, the base class implements bool supports_mpi() as returning
++	/// false, and derived classes must override this to return true if the derived class supports MPI.  This
++	/// function is called by the parse_common_ensemble_metric_options() function if the configuration
++	/// has been set for MPI-based collection at the end.
++	/// @returns Originating process index that generated the data that this process received.
++	/// @note This will do one or more MPI_Recv operations!  It is intended only to be called by callers that can
++	/// guarantee synchronicity and which can avoid deadlock (e.g. the JD2 MPI job distributor)!
++	core::Size recv_mpi_summary() override;
++
++#endif //USEMPI
++
+ private: // Private functions for this subclass.
+ 
+ 	/// @brief At the end of accumulation and start of reporting, finalize the values.
+diff --git a/source/src/protocols/jd2/JobDistributor.cc b/source/src/protocols/jd2/JobDistributor.cc
+index 060d6056c74..5c35fc68be0 100644
+--- a/source/src/protocols/jd2/JobDistributor.cc
++++ b/source/src/protocols/jd2/JobDistributor.cc
+@@ -320,11 +320,7 @@ void JobDistributor::go_main(protocols::moves::MoverOP mover)
+ 	} PROF_STOP( basic::JD2);
+ 
+ 	//Report ensemble metrics:
+-	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : ensemble_metrics ) {
+-		if ( ( !metric->finalized() ) && metric->reports_at_end() /*Skip metrics that have already reported, or which don't report at end.*/ ) {
+-			metric->produce_final_report();
+-		}
+-	}
++	finalize_ensemble_metrics( ensemble_metrics );
+ 
+ 	note_all_jobs_finished();
+ 	if ( batches_.size() ) {
+@@ -967,6 +963,23 @@ void JobDistributor::set_current_job_by_index( core::Size curr_job_index )
+ 	current_job_id_ = curr_job_index;
+ }
+ 
++/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
++/// reported in-line, and which need to report at the end.)
++/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
++/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
++/*virtual*/
++void
++JobDistributor::finalize_ensemble_metrics(
++	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++) const {
++	if ( metrics.empty() ) return;
++	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : metrics ) {
++		if ( ( !metric->finalized() ) && metric->reports_at_end() /*Skip metrics that have already reported, or which don't report at end.*/ ) {
++			metric->produce_final_report();
++		}
++	}
++}
++
+ //////////////////////protected accessor functions////////////////////
+ core::Size JobDistributor::current_job_id() const
+ {
+diff --git a/source/src/protocols/jd2/JobDistributor.hh b/source/src/protocols/jd2/JobDistributor.hh
+index 61d8b772111..018a2559619 100644
+--- a/source/src/protocols/jd2/JobDistributor.hh
++++ b/source/src/protocols/jd2/JobDistributor.hh
+@@ -190,7 +190,6 @@ protected:
+ 	/// to use it. It is NOT virtual - this implementation can be shared by (at least) the simple
+ 	/// FileSystemJobDistributor, the MPIWorkPoolJobDistributor, and the MPIWorkPartitionJobDistributor.  Do not feel that
+ 	/// you need to use it as-is in your class - but DO plan on implementing all its functionality!
+-
+ 	void
+ 	go_main( protocols::moves::MoverOP mover );
+ 
+@@ -230,6 +229,16 @@ protected:
+ 	/// thread to change current_job_.
+ 	void set_current_job_by_index( core::Size curr_job_index );
+ 
++	/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
++	/// reported in-line, and which need to report at the end.)
++	/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
++	/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
++	virtual
++	void
++	finalize_ensemble_metrics(
++		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++	) const;
++
+ protected:
+ 	/// @brief this function updates the current_job_id_ and current_job_ fields.  The boolean return states whether or not
+ 	///a new job was obtained (if false, quit distributing!)
+diff --git a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc
+index a1a71fb927d..f1a20a9eb25 100644
+--- a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc
++++ b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc
+@@ -20,6 +20,8 @@
+ #include <protocols/jd2/MPIWorkPoolJobDistributor.hh>
+ 
+ // Package headers
++#include <protocols/rosetta_scripts/RosettaScriptsParser.hh>
++#include <protocols/ensemble_metrics/EnsembleMetric.hh>
+ #include <protocols/jd2/JobOutputter.hh>
+ #include <protocols/jd2/Job.hh>
+ #include <basic/mpi/mpi_enums.hh>
+@@ -139,6 +141,19 @@ MPIWorkPoolJobDistributor::master_go( protocols::moves::MoverOP /*mover*/ )
+ 	// set first job to assign
+ 	master_get_new_job_id();
+ 
++	// If we're using the parser, set the list of ensemble metrics to print at the end.
++	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics;
++	if( using_parser() ) {
++		protocols::moves::MoverOP tempmover; //Will be discarded.
++		parser()->generate_mover( tempmover, true,
++			"" /*empty xml_fname, this means go to options system*/,
++			ensemble_metrics,
++			current_job()->input_tag(),
++			job_outputter()->output_name(current_job()),
++			true
++		);
++	}
++
+ 	// Job Distribution Loop
+ 	while ( next_job_to_assign_ != 0 ) {
+ 		if(TR.visible()) TR << "Master Node: Waiting for job requests..." << std::endl;
+@@ -293,6 +308,8 @@ MPIWorkPoolJobDistributor::master_go( protocols::moves::MoverOP /*mover*/ )
+ 		}
+ 	}
+ 	if(TR.visible()) TR << "Master Node: Finished sending spin down signals to slaves" << std::endl;
++
++	finalize_ensemble_metrics( ensemble_metrics );
+ #endif
+ }
+ 
+@@ -612,5 +629,64 @@ void MPIWorkPoolJobDistributor::send_go_signal() {
+ 	return;
+ }
+ 
++/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
++/// reported in-line, and which need to report at the end.)
++/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
++/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
++/*virtual*/
++void
++MPIWorkPoolJobDistributor::finalize_ensemble_metrics(
++	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++) const {
++#ifdef USEMPI
++	if( metrics.empty() ) return;
++	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : metrics ) {
++		if ( ( !metric->finalized() ) && metric->reports_at_end() ) {
++			MPI_Barrier( MPI_COMM_WORLD );
++			if( rank_ == 0 ) {
++				for( core::Size i(1); i<npes_; ++i ) {
++					core::Size const originating_node( metric->recv_mpi_summary() );
++					TR << "Process 0 received data for " << metric->name() << " ensemble metric from process " << originating_node << "." << std::endl;
++				}
++			} else {
++				if( sequential_distribution() ) {
++					// Have each rank send its MPI summary in sequence.
++					// (This is only intended for regression tests).
++					if( rank_ == 1 ) {
++						// Send the summary, then send the go signal to the next rank.
++						metric->send_mpi_summary(0);
++						if( npes_ > 2 ) {
++							char signal('V');
++							MPI_Send( &signal, 1, MPI_CHAR, 2, 0, MPI_COMM_WORLD );
++						}
++					} else {
++						// Wait until we receive a go signal, then send the summary, then send the go signal to the next rank.
++						char signal;
++						MPI_Status mystatus;
++						MPI_Recv( &signal, 1, MPI_CHAR, rank_ - 1, 0, MPI_COMM_WORLD, &mystatus );
++						metric->send_mpi_summary(0);
++						if( npes_ > rank_ + 1 ) {
++							MPI_Send( &signal, 1, MPI_CHAR, rank_ + 1, 0, MPI_COMM_WORLD );
++						}
++					}
++				} else {
++					// Have ranks send summaries in any order.
++					metric->send_mpi_summary(0);
++				}
++				TR << "Process " << rank_ << " sent data for " << metric->name() << " ensemble metric to process 0." << std::endl;
++				metric->reset(); //Suppresses other processes from producing reports.
++			}
++			MPI_Barrier( MPI_COMM_WORLD );
++
++			// Only process 0 produces report:
++			if( rank_ == 0 ) {
++				metric->produce_final_report();
++			}
++		}
++	}
++#endif
++	return;
++}
++
+ }//jd2
+ }//protocols
+diff --git a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh
+index 124ddc809c7..a8697e6f978 100644
+--- a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh
++++ b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh
+@@ -189,6 +189,15 @@ protected:
+ 	virtual
+ 	void send_go_signal();
+ 
++	/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
++	/// reported in-line, and which need to report at the end.)
++	/// @details Overrides base class to allow processes that generated data to send data to process 0.
++	/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
++	void
++	finalize_ensemble_metrics(
++		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++	) const override;
++
+ protected:
+ 
+ 	/// @brief total number of processing elements
+diff --git a/tests/integration/tests/central_tendency_ensemble_metric/command.mpi b/tests/integration/tests/central_tendency_ensemble_metric/command.mpi
+new file mode 100644
+index 00000000000..2c9837fb3dc
+--- /dev/null
++++ b/tests/integration/tests/central_tendency_ensemble_metric/command.mpi
+@@ -0,0 +1,82 @@
++#
++# This is a command file.
++#
++# To make a new test, all you have to do is:
++#   1.  Make a new directory under tests/
++#   2.  Put a file like this (named "command") into that directory.
++#
++# The contents of this file will be passed to the shell (Bash or SSH),
++# so any legal shell commands can go in this file.
++# Or comments like this one, for that matter.
++#
++# Variable substiution is done using Python's printf format,
++# meaning you need a percent sign, the variable name in parentheses,
++# and the letter 's' (for 'string').
++#
++# Available variables include:
++#   workdir     the directory where test input files have been copied,
++#               and where test output files should end up.
++#   minidir     the base directory where Mini lives
++#   database    where the Mini database lives
++#   bin         where the Mini binaries live
++#   binext      the extension on binary files, like ".linuxgccrelease"
++#
++# The most important thing is that the test execute in the right directory.
++# This is especially true when we're using SSH to execute on other hosts.
++# All command files should start with this line:
++#
++
++cd %(workdir)s
++
++[ -x %(bin)s/rosetta_scripts.%(binext)s ] || exit 1
++
++mpirun -np 4 %(bin)s/rosetta_scripts.%(binext)s %(additional_flags)s @flags.mpi -database %(database)s -testing:INTEGRATION_TEST  2>&1 \
++    | egrep -vf ../../ignore_list \
++    > out.log
++
++test "${PIPESTATUS[0]}" != '0' && exit 1 || true  # Check if the first executable in pipe line return error and exit with error code if so
++
++# Remove unneeded files
++rm out.log
++rm score.sc
++
++# Remove lines from process 0 tracer that will vary from run to run:
++sed -i '/ensemble metric from process/d' tracer.log_0
++sed -i '/Getting next job to assign/d' tracer.log_0
++sed -i '/Sending new job id/d' tracer.log_0
++sed -i '/Master set job/d' tracer.log_0
++sed -i '/Received job output finish/d' tracer.log_0
++sed -i '/Received job success/d' tracer.log_0
++sed -i '/Received message from/d' tracer.log_0
++sed -i '/Waiting for/d' tracer.log_0
++sed -i '/Sending spin/d' tracer.log_0
++
++sed -i '/seconds/d' tracer.log_0
++sed -i '/seconds/d' tracer.log_1
++sed -i '/seconds/d' tracer.log_2
++sed -i '/seconds/d' tracer.log_3
++
++sed -i '/Rosetta version/d' tracer.log_0
++sed -i '/Rosetta version/d' tracer.log_1
++sed -i '/Rosetta version/d' tracer.log_2
++sed -i '/Rosetta version/d' tracer.log_3
++
++#
++# After that, do whatever you want.
++# Files will be diffed verbatim, so if you want to log output and compare it,
++# you'll need to filter out lines that change randomly (e.g. timings).
++# Prefixing your tests with "nice" is probably good form as well.
++# Don't forget to use -constant_seed -nodelay  so results are reproducible.
++# Here's a typical test for a Mini binary, assuming there's a "flags" file
++# in this directory too:
++#
++## %(bin)s/MY_MINI_PROGRAM.%(binext)s %(additional_flags)s @flags -database %(database)s -testing:INTEGRATION_TEST  2>&1 \
++##     | egrep -v 'Finished.+in [0-9]+ seconds.' \
++##     | egrep -v 'Dunbrack library took .+ seconds to load' \
++##     > log
++#
++# Or if you don't care whether the logging output changes:
++#
++## %(bin)s/MY_MINI_PROGRAM.%(binext)s %(additional_flags)s @flags -database %(database)s -testing:INTEGRATION_TEST  2>&1 \
++##     > /dev/null
++#
+diff --git a/tests/integration/tests/central_tendency_ensemble_metric/flags.mpi b/tests/integration/tests/central_tendency_ensemble_metric/flags.mpi
+new file mode 100644
+index 00000000000..f2784a69da2
+--- /dev/null
++++ b/tests/integration/tests/central_tendency_ensemble_metric/flags.mpi
+@@ -0,0 +1,7 @@
++-parser:protocol inputs/test.xml
++-nstruct 20
++-in:file:fullatom
++-in:file:s inputs/teststruct.pdb
++-mpi_tracer_to_file tracer.log
++-sequential_mpi_job_distribution
++-mute basic.io.database core.scoring
+\ No newline at end of file
