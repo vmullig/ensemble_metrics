@@ -1,8 +1,8 @@
 diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.cc b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
-index 6bf26263434..1c91ca39fd3 100644
+index 56f4fcf0a96..36310a4f535 100644
 --- a/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
 +++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
-@@ -230,6 +230,89 @@ void
+@@ -302,6 +302,89 @@ void
  	);
  }
  
@@ -93,10 +93,10 @@ index 6bf26263434..1c91ca39fd3 100644
  // Creator functions
  ////////////////////////////////////////////////////////////////////////////////
 diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.hh b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
-index 75ddc5975b1..0e46d80e9c8 100644
+index 807e7d11ba7..6dea32efd29 100644
 --- a/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
 +++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
-@@ -127,6 +127,64 @@ public: // Citation manager functions
+@@ -153,6 +153,64 @@ public: // Citation manager functions
  		basic::citation_manager::CitationCollectionList & citations
  	) const override;
  
@@ -162,10 +162,10 @@ index 75ddc5975b1..0e46d80e9c8 100644
  
  
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
-index 83ff4a7db01..0991aefc045 100644
+index dc1a97346f5..39b2de9f153 100644
 --- a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
-@@ -186,7 +186,24 @@ void
+@@ -189,7 +189,24 @@ void
  EnsembleMetric::apply(
  	core::pose::Pose const & pose
  ) {
@@ -191,7 +191,7 @@ index 83ff4a7db01..0991aefc045 100644
  	if ( ensemble_generating_protocol_ == nullptr ) {
  		++poses_in_ensemble_;
  		add_pose_to_ensemble( pose );
-@@ -350,6 +367,18 @@ EnsembleMetric::parse_common_ensemble_metric_options(
+@@ -349,6 +366,18 @@ EnsembleMetric::parse_common_ensemble_metric_options(
  		);
  		set_output_filename( tag->getOption< std::string >( "output_filename" ) );
  	}
@@ -210,7 +210,7 @@ index 83ff4a7db01..0991aefc045 100644
  }
  
  ////////////////////////////////////////////////////////////////////////////////
-@@ -528,6 +557,97 @@ EnsembleMetric::provide_citation_info(
+@@ -552,6 +581,97 @@ EnsembleMetric::provide_citation_info(
  	//GNDN
  }
  
@@ -309,10 +309,10 @@ index 83ff4a7db01..0991aefc045 100644
  // PRIVATE REPORTING FUNCTIONS
  ////////////////////////////////////////////////////////////////////////////////
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.hh b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
-index 5c6050560b0..3b752d2b67a 100644
+index 43f700c77ba..9951741efa8 100644
 --- a/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
-@@ -381,6 +381,70 @@ public: // Citation manager functions
+@@ -425,6 +425,70 @@ public: // Citation manager functions
  		basic::citation_manager::CitationCollectionList &
  	) const;
  
@@ -384,7 +384,7 @@ index 5c6050560b0..3b752d2b67a 100644
  
  	/// @brief Write the final report to the tracer.
 diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
-index 9379b748b91..3795320f681 100644
+index a8b658e3dc6..1e2fa15cbcd 100644
 --- a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
 +++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
 @@ -62,6 +62,11 @@
@@ -399,7 +399,7 @@ index 9379b748b91..3795320f681 100644
  #ifdef    SERIALIZATION
  // Utility serialization headers
  #include <utility/serialization/serialization.hh>
-@@ -296,6 +301,114 @@ CentralTendencyEnsembleMetric::provide_citation_info(
+@@ -359,6 +364,114 @@ CentralTendencyEnsembleMetric::provide_citation_info(
  	);
  }
  
@@ -515,10 +515,10 @@ index 9379b748b91..3795320f681 100644
  // Private functions for this subclass
  ////////////////////////////////////////////////////////////////////////////////
 diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
-index e0fb0a5de0b..cd730dd0d72 100644
+index f693438594b..dbf729b9c2d 100644
 --- a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
 +++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
-@@ -156,6 +156,57 @@ public: // Citation manager functions
+@@ -185,6 +185,57 @@ public: // Citation manager functions
  		basic::citation_manager::CitationCollectionList & citations
  	) const override;
  
@@ -576,49 +576,8 @@ index e0fb0a5de0b..cd730dd0d72 100644
  private: // Private functions for this subclass.
  
  	/// @brief At the end of accumulation and start of reporting, finalize the values.
-diff --git a/source/src/protocols/jd2/JobDistributor.cc b/source/src/protocols/jd2/JobDistributor.cc
-index 060d6056c74..5c35fc68be0 100644
---- a/source/src/protocols/jd2/JobDistributor.cc
-+++ b/source/src/protocols/jd2/JobDistributor.cc
-@@ -320,11 +320,7 @@ void JobDistributor::go_main(protocols::moves::MoverOP mover)
- 	} PROF_STOP( basic::JD2);
- 
- 	//Report ensemble metrics:
--	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : ensemble_metrics ) {
--		if ( ( !metric->finalized() ) && metric->reports_at_end() /*Skip metrics that have already reported, or which don't report at end.*/ ) {
--			metric->produce_final_report();
--		}
--	}
-+	finalize_ensemble_metrics( ensemble_metrics );
- 
- 	note_all_jobs_finished();
- 	if ( batches_.size() ) {
-@@ -967,6 +963,23 @@ void JobDistributor::set_current_job_by_index( core::Size curr_job_index )
- 	current_job_id_ = curr_job_index;
- }
- 
-+/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
-+/// reported in-line, and which need to report at the end.)
-+/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
-+/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
-+/*virtual*/
-+void
-+JobDistributor::finalize_ensemble_metrics(
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
-+) const {
-+	if ( metrics.empty() ) return;
-+	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : metrics ) {
-+		if ( ( !metric->finalized() ) && metric->reports_at_end() /*Skip metrics that have already reported, or which don't report at end.*/ ) {
-+			metric->produce_final_report();
-+		}
-+	}
-+}
-+
- //////////////////////protected accessor functions////////////////////
- core::Size JobDistributor::current_job_id() const
- {
 diff --git a/source/src/protocols/jd2/JobDistributor.hh b/source/src/protocols/jd2/JobDistributor.hh
-index 61d8b772111..018a2559619 100644
+index 05fbf9a1b71..6d8aacf5a2b 100644
 --- a/source/src/protocols/jd2/JobDistributor.hh
 +++ b/source/src/protocols/jd2/JobDistributor.hh
 @@ -190,7 +190,6 @@ protected:
@@ -629,25 +588,8 @@ index 61d8b772111..018a2559619 100644
  	void
  	go_main( protocols::moves::MoverOP mover );
  
-@@ -230,6 +229,16 @@ protected:
- 	/// thread to change current_job_.
- 	void set_current_job_by_index( core::Size curr_job_index );
- 
-+	/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
-+	/// reported in-line, and which need to report at the end.)
-+	/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
-+	/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
-+	virtual
-+	void
-+	finalize_ensemble_metrics(
-+		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
-+	) const;
-+
- protected:
- 	/// @brief this function updates the current_job_id_ and current_job_ fields.  The boolean return states whether or not
- 	///a new job was obtained (if false, quit distributing!)
 diff --git a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc
-index a1a71fb927d..f1a20a9eb25 100644
+index a1a71fb927d..a22b9db6f12 100644
 --- a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc
 +++ b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.cc
 @@ -20,6 +20,8 @@
@@ -664,7 +606,7 @@ index a1a71fb927d..f1a20a9eb25 100644
  	master_get_new_job_id();
  
 +	// If we're using the parser, set the list of ensemble metrics to print at the end.
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics;
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics;
 +	if( using_parser() ) {
 +		protocols::moves::MoverOP tempmover; //Will be discarded.
 +		parser()->generate_mover( tempmover, true,
@@ -688,28 +630,33 @@ index a1a71fb927d..f1a20a9eb25 100644
  #endif
  }
  
-@@ -612,5 +629,64 @@ void MPIWorkPoolJobDistributor::send_go_signal() {
+@@ -612,5 +629,69 @@ void MPIWorkPoolJobDistributor::send_go_signal() {
  	return;
  }
  
 +/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
 +/// reported in-line, and which need to report at the end.)
-+/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
++/// @details Overrides base class to allow processes that generated data to send data to process 0.
 +/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
 +/*virtual*/
 +void
 +MPIWorkPoolJobDistributor::finalize_ensemble_metrics(
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++#ifdef USEMPI
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++#else
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > const &
++#endif
 +) const {
 +#ifdef USEMPI
 +	if( metrics.empty() ) return;
-+	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : metrics ) {
-+		if ( ( !metric->finalized() ) && metric->reports_at_end() ) {
++	for ( std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP >::const_iterator it( metrics.begin()); it!=metrics.end(); ++it ) {
++		protocols::ensemble_metrics::EnsembleMetric & metric( *it->second );
++		if ( ( !metric.finalized() ) && metric.reports_at_end() ) {
 +			MPI_Barrier( MPI_COMM_WORLD );
 +			if( rank_ == 0 ) {
 +				for( core::Size i(1); i<npes_; ++i ) {
-+					core::Size const originating_node( metric->recv_mpi_summary() );
-+					TR << "Process 0 received data for " << metric->name() << " ensemble metric from process " << originating_node << "." << std::endl;
++					core::Size const originating_node( metric.recv_mpi_summary() );
++					TR << "Process 0 received data for " << metric.name() << " ensemble metric from process " << originating_node << "." << std::endl;
 +				}
 +			} else {
 +				if( sequential_distribution() ) {
@@ -717,7 +664,7 @@ index a1a71fb927d..f1a20a9eb25 100644
 +					// (This is only intended for regression tests).
 +					if( rank_ == 1 ) {
 +						// Send the summary, then send the go signal to the next rank.
-+						metric->send_mpi_summary(0);
++						metric.send_mpi_summary(0);
 +						if( npes_ > 2 ) {
 +							char signal('V');
 +							MPI_Send( &signal, 1, MPI_CHAR, 2, 0, MPI_COMM_WORLD );
@@ -727,23 +674,23 @@ index a1a71fb927d..f1a20a9eb25 100644
 +						char signal;
 +						MPI_Status mystatus;
 +						MPI_Recv( &signal, 1, MPI_CHAR, rank_ - 1, 0, MPI_COMM_WORLD, &mystatus );
-+						metric->send_mpi_summary(0);
++						metric.send_mpi_summary(0);
 +						if( npes_ > rank_ + 1 ) {
 +							MPI_Send( &signal, 1, MPI_CHAR, rank_ + 1, 0, MPI_COMM_WORLD );
 +						}
 +					}
 +				} else {
 +					// Have ranks send summaries in any order.
-+					metric->send_mpi_summary(0);
++					metric.send_mpi_summary(0);
 +				}
-+				TR << "Process " << rank_ << " sent data for " << metric->name() << " ensemble metric to process 0." << std::endl;
-+				metric->reset(); //Suppresses other processes from producing reports.
++				TR << "Process " << rank_ << " sent data for " << metric.name() << " ensemble metric to process 0." << std::endl;
++				metric.reset(); //Suppresses other processes from producing reports.
 +			}
 +			MPI_Barrier( MPI_COMM_WORLD );
 +
 +			// Only process 0 produces report:
 +			if( rank_ == 0 ) {
-+				metric->produce_final_report();
++				metric.produce_final_report();
 +			}
 +		}
 +	}
@@ -754,7 +701,7 @@ index a1a71fb927d..f1a20a9eb25 100644
  }//jd2
  }//protocols
 diff --git a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh
-index 124ddc809c7..a8697e6f978 100644
+index 124ddc809c7..651a9bc8527 100644
 --- a/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh
 +++ b/source/src/protocols/jd2/MPIWorkPoolJobDistributor.hh
 @@ -189,6 +189,15 @@ protected:
@@ -767,7 +714,7 @@ index 124ddc809c7..a8697e6f978 100644
 +	/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
 +	void
 +	finalize_ensemble_metrics(
-+		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
 +	) const override;
 +
  protected:

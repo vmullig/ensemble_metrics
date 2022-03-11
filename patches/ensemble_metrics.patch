@@ -16,10 +16,10 @@ index affa340b12a..74696f751bc 100755
                        "   "+self.get_base_outdir()+"/"+"protocols/init/init.SimpleMetricRegistrators.ihh and \n" \
 diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.cc b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
 new file mode 100644
-index 00000000000..9f2bfbdb491
+index 00000000000..56f4fcf0a96
 --- /dev/null
 +++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.cc
-@@ -0,0 +1,276 @@
+@@ -0,0 +1,348 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -74,6 +74,11 @@ index 00000000000..9f2bfbdb491
 +/// @details Const global data.
 +static utility::vector1< std::string > const metric_names_for_class{};
 +
++/// @brief The names of all the realvector-valued metrics that this ensemble metric
++/// is capable of returning must go here, initialized in the parentheses.
++/// @details Const global data.
++static utility::vector1< std::string > const realvector_metric_names_for_class{};
++
 +////////////////////////////////////////////////////////////////////////////////
 +// CONSTRUCTION AND DESTRUCTION
 +////////////////////////////////////////////////////////////////////////////////
@@ -123,6 +128,14 @@ index 00000000000..9f2bfbdb491
 +	return metric_names_for_class;
 +}
 +
++/// @brief Get a list of the names of the real-valued metrics that can be filtered on (e.g. by the EnsembleMetricFilter)
++/// or otherwise extracted from this EnsembleMetric.  Must be implemented by derived classes.  (Can be empty list if
++/// no real-valued metrics are computed.)
++utility::vector1< std::string > const &
++--class--::realvector_valued_metric_names() const {
++	return realvector_metric_names_for_class;
++}
++
 +////////////////////////////////////////////////////////////////////////////////
 +// Virtual functions overrides of private pure virtual functions from base class.
 +////////////////////////////////////////////////////////////////////////////////
@@ -167,11 +180,70 @@ index 00000000000..9f2bfbdb491
 +	return 0.0; //Keep older compilers happy.
 +}
 +
++/// @brief Given a real vector-valued metric name, get the whole vector.
++/// @details Must be implemented by derived classes.
++utility::vector1< core::Real > const &
++--class--::derived_get_realvector_metric_values_by_name(
++	std::string const & metric_name
++) const {
++	std::string const errmsg( "Error in --class--::derived_get_realvector_metric_values_by_name(): " );
++	debug_assert( realvector_metric_names_for_class.has_value( metric_name ) );
++
++	//Return the appropriate metric here given the name.
++	// if( metric_name == "AAAAA") {
++	// 	return XXX;
++	// } else if( metric_name == "BBBBB" ) {
++	// 	return YYY;
++	// } else {
++	// 	utility_exit_with_message( errmsg + "\"" + metric_name + "\" is not a realvector-valued metric that the " + name() + " ensemble metric returns." );
++	// }
++
++	return 0.0; //Keep older compilers happy.
++}
++
++/// @brief Given a real vector-valued metric name, get an entry.
++/// @details Must be implemented by derived classes.
++core::Real
++--class--::derived_get_realvector_metric_value_by_name(
++	std::string const & metric_name,
++	core::Size const vector_index
++) const {
++	std::string const errmsg( "Error in --class--::derived_get_realvector_metric_value_by_name(): " );
++	debug_assert( realvector_metric_names_for_class.has_value( metric_name ) );
++	runtime_assert( vector_index > 0 );
++
++	//Return the appropriate metric here given the name.
++	// if( metric_name == "AAAAA") {
++	// runtime_assert_string_msg( vector_index <= XXX.size(), errmsg + "Vector index " + std::to_string(vector_index) + " is out of range for realvector-valued metric " + metric_name + "." );
++	// 	return XXX[vector_index];
++	// } else if( metric_name == "BBBBB" ) {
++	//  runtime_assert_string_msg( vector_index <= YYY.size(), errmsg + "Vector index " + std::to_string(vector_index) + " is out of range for realvector-valued metric " + metric_name + "." );
++	// 	return YYY[vector_index];
++	// } else {
++	// 	utility_exit_with_message( errmsg + "\"" + metric_name + "\" is not a realvector-valued metric that the " + name() + " ensemble metric returns." );
++	// }
++
++	return 0.0; //Keep older compilers happy.
++}
++
 +/// @brief Get the tracer for a derived class.
 +/// @details Must be implemented for each derived class.
 +basic::Tracer &
 +--class--::get_derived_tracer() const {
 +	return TR;
++}
++
++/// @brief Copy derived data from another EnsembleMetric of the same type.
++/// @details Must throw if types don't match.  Must be implemented by derived classes.
++void
++--class--::derived_copy_data(
++	EnsembleMetric const & src
++) {
++	--class-- const * const other_ptr_cast( dynamic_cast< --class-- const * const >( &src ) );
++	runtime_assert_string_msg( other_ptr_cast != nullptr, "Error in --class--::copy_data(): Attempting to copy data from a " + src.name() + " ensemble metric to a " + name() + " ensemble metric!" );
++	--class-- const & other_cast( *other_ptr_cast );
++
++	//TODO COPY ALL DATA HERE.
 +}
 +
 +/// @brief Reset the data collected by the derived classes.  Must be
@@ -298,10 +370,10 @@ index 00000000000..9f2bfbdb491
 +#endif // SERIALIZATION
 diff --git a/source/code_templates/src/ensemble_metric/EnsembleMetric.hh b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
 new file mode 100644
-index 00000000000..3a4654a1af1
+index 00000000000..807e7d11ba7
 --- /dev/null
 +++ b/source/code_templates/src/ensemble_metric/EnsembleMetric.hh
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,173 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -363,6 +435,12 @@ index 00000000000..3a4654a1af1
 +	utility::vector1< std::string > const &
 +	real_valued_metric_names() const override;
 +
++	/// @brief Get a list of the names of the real-valued metrics that can be filtered on (e.g. by the EnsembleMetricFilter)
++	/// or otherwise extracted from this EnsembleMetric.  Must be implemented by derived classes.  (Can be empty list if
++	/// no real-valued metrics are computed.)
++	utility::vector1< std::string > const &
++	realvector_valued_metric_names() const override;
++
 +private: // Virtual functions overrides of private pure virtual functions from base class.
 +
 +	/// @brief Write the final report produced by this metric to a string.
@@ -386,10 +464,30 @@ index 00000000000..3a4654a1af1
 +		std::string const & metric_name
 +	) const override;
 +
++	/// @brief Given a real vector-valued metric name, get the whole vector.
++	/// @details Must be implemented by derived classes.
++	utility::vector1< core::Real > const &
++	derived_get_realvector_metric_values_by_name(
++		std::string const & metric_name
++	) const override;
++
++	/// @brief Given a real vector-valued metric name, get an entry.
++	/// @details Must be implemented by derived classes.
++	core::Real
++	derived_get_realvector_metric_value_by_name(
++		std::string const & metric_name,
++		core::Size const vector_index
++	) const override;
++
 +	/// @brief Get the tracer for a derived class.
 +	/// @details Must be implemented for each derived class.
 +	basic::Tracer &
 +	get_derived_tracer() const override;
++
++	/// @brief Copy derived data from another EnsembleMetric of the same type.
++	/// @details Must throw if types don't match.  Must be implemented by derived classes.
++	/// @note Should NOT copy configuration data.
++	void derived_copy_data( EnsembleMetric const & src ) override;
 +
 +	/// @brief Reset the data collected by the derived classes.  Must be
 +	/// implemented by derived classes.
@@ -501,6 +599,18 @@ index 00000000000..d10cea4fcf0
 +
 +#endif //INCLUDED_--path_underscore--_--class--Creator_HH
 +
+diff --git a/source/src/basic/options/options_rosetta.py b/source/src/basic/options/options_rosetta.py
+index 868e2624ab3..0c037fc5b50 100755
+--- a/source/src/basic/options/options_rosetta.py
++++ b/source/src/basic/options/options_rosetta.py
+@@ -1381,6 +1381,7 @@ Options = Option_Group( '',
+ 		Option( 'failed_job_exception', 'Boolean', default = 'true', desc = 'If JD2 encounters an error during job execution, raise an exception at the end of the run', ),
+ 		Option( 'max_nstruct_in_memory', 'Integer', default = '1000000', desc = 'If nstruct is set higher than this number, JD2 will keep only this many jobs in memory in the jobs list at any given time (to keep the jobs list from filling up memory).  As jobs complete, they will be deleted and the jobs list will be filled out with new jobs.  This option is intended for exteremly large runs on systems like the Blue Gene/Q supercomputer.  To disable this sort of memory management, set this option to 0.', ),
+ 		Option( 'sequential_mpi_job_distribution', 'Boolean', default='false', desc = 'If specified, MPI versions of the JobDistributor send jobs to each slave in sequence (slave1, slave2, slave3 etc.).  False by default.  Note that this should NOT be used for production runs; it is intended only for regression tests in which non-sequential job distribution would result in stochastic variations.', ),
++		Option( 'share_ensemble_metrics_across_jobs', 'Boolean', default = 'true', desc = "If true, ensemble metrics that are set to accumulate data normally are shared across jobs (i.e. across different inputs).  If false, they are cleared for each job (each input), and only shared across replicates of the same job.  True by default.", ),
+ 
+ 		Option( 'grid_ensemble', 'Boolean', default = 'false', desc='Do an ensemble search where each input pdb is used for an ensemble based search.  Instead of each in file outputting nstruct, we use the input files to generate a total nstruct across the inputs'),
+ 		Option( 'seed_ensemble', 'Boolean', default = 'false', desc='Do an ensemble search as in grid_search, but randomly choose the seeds over the inputs.  See seed_ensemble_weights to weight the inputs'),
 diff --git a/source/src/protocols.1.src.settings b/source/src/protocols.1.src.settings
 index 8a8d54c4e68..48d048c5b10 100644
 --- a/source/src/protocols.1.src.settings
@@ -533,10 +643,10 @@ index 8a8d54c4e68..48d048c5b10 100644
  		"JumpSelectorLoader",
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.cc b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
 new file mode 100644
-index 00000000000..1410d90c618
+index 00000000000..dc1a97346f5
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.cc
-@@ -0,0 +1,772 @@
+@@ -0,0 +1,800 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -660,6 +770,9 @@ index 00000000000..1410d90c618
 +	ensemble_generating_protocol_repeats_ = src.ensemble_generating_protocol_repeats_;
 +	poses_in_ensemble_ = src.poses_in_ensemble_;
 +	n_threads_ = src.n_threads_;
++
++	derived_copy_data( src ); //Must be implemented by derived classes; should throw if types don't match.
++
 +	return *this;
 +}
 +
@@ -1041,6 +1154,31 @@ index 00000000000..1410d90c618
 +	return derived_get_real_metric_value_by_name( metric_name );
 +}
 +
++/// @brief Given a real vector-valued metric name, get the whole vector.
++/// @details Calls derived_get_real_metric_value_by_name().
++utility::vector1< core::Real > const &
++EnsembleMetric::get_realvector_metric_values_by_name(
++	std::string const & metric_name
++) const {
++	std::string const errmsg( "Error in EnsembleMetric::get_realvector_metric_values_by_name(): " );
++	runtime_assert_string_msg( finalized_, errmsg + "The final report has not yet been generated for the " + name() + " ensemble metric." );
++	runtime_assert_string_msg( realvector_valued_metric_names().has_value( metric_name ), errmsg + "Metric name \"" + metric_name + "\" was requested, but the " + name() + " ensemble metric produces no such real vector-valued metric." );
++	return derived_get_realvector_metric_values_by_name( metric_name );
++}
++
++/// @brief Given a real vector-valued metric name, get an entry in the vector.
++/// @details Calls derived_get_real_metric_value_by_name().
++core::Real
++EnsembleMetric::get_realvector_metric_value_by_name(
++	std::string const & metric_name,
++	core::Size const vector_index
++) const {
++	std::string const errmsg( "Error in EnsembleMetric::get_realvector_metric_value_by_name(): " );
++	runtime_assert_string_msg( finalized_, errmsg + "The final report has not yet been generated for the " + name() + " ensemble metric." );
++	runtime_assert_string_msg( realvector_valued_metric_names().has_value( metric_name ), errmsg + "Metric name \"" + metric_name + "\" was requested, but the " + name() + " ensemble metric produces no such real vector-valued metric." );
++	return derived_get_realvector_metric_value_by_name( metric_name, vector_index );
++}
++
 +/// @brief Get the ensemble generating protocol.
 +/// @details Could be nullptr if none is set.
 +protocols::moves::MoverCOP
@@ -1373,10 +1511,10 @@ index 00000000000..c65c24d5dd8
 +#endif //INCLUDED_protocols_ensemble_metrics_EnsembleMetric_fwd_hh
 diff --git a/source/src/protocols/ensemble_metrics/EnsembleMetric.hh b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
 new file mode 100644
-index 00000000000..f858db3a802
+index 00000000000..43f700c77ba
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/EnsembleMetric.hh
-@@ -0,0 +1,481 @@
+@@ -0,0 +1,525 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -1506,6 +1644,13 @@ index 00000000000..f858db3a802
 +	utility::vector1< std::string > const &
 +	real_valued_metric_names() const = 0;
 +
++	/// @brief Get a list of the names of the realvector-valued metrics that can be filtered on (e.g. by the EnsembleMetricFilter)
++	/// or otherwise extracted from this EnsembleMetric.  Must be implemented by derived classes.  (Can be empty list if
++	/// no realvector-valued metrics are computed.)
++	virtual
++	utility::vector1< std::string > const &
++	realvector_valued_metric_names() const = 0;
++
 +private: // Private pure virtual functions
 +
 +	/// @brief Write the final report produced by this metric to a string.
@@ -1523,7 +1668,7 @@ index 00000000000..f858db3a802
 +		core::pose::Pose const & pose
 +	) = 0;
 +
-+	/// @brief Given a metric name, get its value.
++	/// @brief Given a real-valued metric name, get its value.
 +	/// @details Must be implemented by derived classes.
 +	virtual
 +	core::Real
@@ -1531,11 +1676,33 @@ index 00000000000..f858db3a802
 +		std::string const & metric_name
 +	) const = 0;
 +
++	/// @brief Given a real vector-valued metric name, get the whole vector.
++	/// @details Must be implemented by derived classes.
++	virtual
++	utility::vector1< core::Real > const &
++	derived_get_realvector_metric_values_by_name(
++		std::string const & metric_name
++	) const = 0;
++
++	/// @brief Given a real vector-valued metric name, get an entry.
++	/// @details Must be implemented by derived classes.
++	virtual
++	core::Real
++	derived_get_realvector_metric_value_by_name(
++		std::string const & metric_name,
++		core::Size const vector_index
++	) const = 0;
++
 +	/// @brief Get the tracer for a derived class.
 +	/// @details Pure virtual.  Must be implemented for each derived class.
 +	virtual
 +	basic::Tracer &
 +	get_derived_tracer() const = 0;
++
++	/// @brief Copy derived data from another EnsembleMetric of the same type.
++	/// @details Must throw if types don't match.  Must be implemented by derived classes.
++	/// @note Should NOT copy configuration data.
++	virtual void derived_copy_data( EnsembleMetric const & src ) = 0;
 +
 +	/// @brief Reset the data collected by the derived classes.  Must be
 +	/// implemented by derived classes.
@@ -1741,6 +1908,21 @@ index 00000000000..f858db3a802
 +	core::Real
 +	get_real_metric_value_by_name(
 +		std::string const & metric_name
++	) const;
++
++	/// @brief Given a real vector-valued metric name, get the whole vector.
++	/// @details Calls derived_get_real_metric_value_by_name().
++	utility::vector1< core::Real > const &
++	get_realvector_metric_values_by_name(
++		std::string const & metric_name
++	) const;
++
++	/// @brief Given a real vector-valued metric name, get an entry in the vector.
++	/// @details Calls derived_get_real_metric_value_by_name().
++	core::Real
++	get_realvector_metric_value_by_name(
++		std::string const & metric_name,
++		core::Size const vector_index
 +	) const;
 +
 +	/// @brief Get the ensemble generating protocol.
@@ -3113,10 +3295,10 @@ index 00000000000..30cf569d571
 +#endif //INCLUDED_protocols_ensemble_metrics_filters_EnsembleFilter_fwd_hh
 diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
 new file mode 100644
-index 00000000000..2996222209d
+index 00000000000..a8b658e3dc6
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.cc
-@@ -0,0 +1,500 @@
+@@ -0,0 +1,563 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -3205,6 +3387,11 @@ index 00000000000..2996222209d
 +"min", "max", "range"
 +};
 +
++/// @brief The names of all the realvector-valued metrics that this ensemble metric
++/// is capable of returning must go here, initialized in the parentheses.
++/// @details Const global data.
++static utility::vector1< std::string > const realvector_metric_names_for_class{};
++
 +////////////////////////////////////////////////////////////////////////////////
 +// CONSTRUCTION AND DESTRUCTION
 +////////////////////////////////////////////////////////////////////////////////
@@ -3252,6 +3439,14 @@ index 00000000000..2996222209d
 +utility::vector1< std::string > const &
 +CentralTendencyEnsembleMetric::real_valued_metric_names() const {
 +	return metric_names_for_class;
++}
++
++/// @brief Get a list of the names of the real-valued metrics that can be filtered on (e.g. by the EnsembleMetricFilter)
++/// or otherwise extracted from this EnsembleMetric.  Must be implemented by derived classes.  (Can be empty list if
++/// no real-valued metrics are computed.)
++utility::vector1< std::string > const &
++CentralTendencyEnsembleMetric::realvector_valued_metric_names() const {
++	return realvector_metric_names_for_class;
 +}
 +
 +////////////////////////////////////////////////////////////////////////////////
@@ -3321,11 +3516,61 @@ index 00000000000..2996222209d
 +	return 0.0; //Keep older compilers happy.
 +}
 +
++/// @brief Given a real vector-valued metric name, get the whole vector.
++/// @details Must be implemented by derived classes.
++utility::vector1< core::Real > const &
++CentralTendencyEnsembleMetric::derived_get_realvector_metric_values_by_name(
++	std::string const & //metric_name
++) const {
++	utility_exit_with_message( "Error in CentralTendencyEnsembleMetric::derived_get_realvector_metric_values_by_name(): The " + name() + " ensemble metric returns no realvector-valued metrics." );
++
++	// The following lines of code are never called, but are necessary to keep older compilers
++	// happy.  (Note that if they were called, they would create a memory leak.)
++	utility::vector1< core::Real > * dummyvec = new utility::vector1< core::Real >();
++	return *dummyvec; //Keep older compilers happy.
++}
++
++/// @brief Given a real vector-valued metric name, get an entry.
++/// @details Must be implemented by derived classes.
++core::Real
++CentralTendencyEnsembleMetric::derived_get_realvector_metric_value_by_name(
++	std::string const & /*metric_name*/,
++	core::Size const /*vector_index*/
++) const {
++	utility_exit_with_message( "Error in CentralTendencyEnsembleMetric::derived_get_realvector_metric_value_by_name(): The " + name() + " ensemble metric returns no realvector-valued metrics." );
++
++	return 0.0; //Keep older compilers happy.
++}
++
 +/// @brief Get the tracer for a derived class.
 +/// @details Must be implemented for each derived class.
 +basic::Tracer &
 +CentralTendencyEnsembleMetric::get_derived_tracer() const {
 +	return TR;
++}
++
++/// @brief Copy derived data from another EnsembleMetric of the same type.
++/// @details Must throw if types don't match.  Must be implemented by derived classes.
++/// @note Should NOT copy configuration data.
++void
++CentralTendencyEnsembleMetric::derived_copy_data(
++	EnsembleMetric const & src
++) {
++	CentralTendencyEnsembleMetric const * const other_ptr_cast( dynamic_cast< CentralTendencyEnsembleMetric const * const >( &src ) );
++	runtime_assert_string_msg( other_ptr_cast != nullptr, "Error in CentralTendencyEnsembleMetric::copy_data(): Attempting to copy data from a " + src.name() + " ensemble metric to a " + name() + " ensemble metric!" );
++	CentralTendencyEnsembleMetric const & other_cast( *other_ptr_cast );
++
++	// simple_metric_ deliberately not copied.
++	values_ = other_cast.values_;
++	mean_ = other_cast.mean_;
++	median_ = other_cast.median_;
++	mode_ = other_cast.mode_;
++	stderr_ = other_cast.stderr_;
++	stddev_ = other_cast.stddev_;
++	min_ = other_cast.min_;
++	max_ = other_cast.max_;
++	range_ = other_cast.range_;
++	derived_finalized_ = other_cast.derived_finalized_;
 +}
 +
 +/// @brief Reset the data collected by the derived classes.  Must be
@@ -3682,10 +3927,10 @@ index 00000000000..c73defcf19d
 +#endif //INCLUDED_protocols_ensemble_metrics_metrics_CentralTendencyEnsembleMetric_fwd_hh
 diff --git a/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
 new file mode 100644
-index 00000000000..af62bfcba66
+index 00000000000..f693438594b
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/metrics/CentralTendencyEnsembleMetric.hh
-@@ -0,0 +1,256 @@
+@@ -0,0 +1,285 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -3780,6 +4025,12 @@ index 00000000000..af62bfcba66
 +	utility::vector1< std::string > const &
 +	real_valued_metric_names() const override;
 +
++	/// @brief Get a list of the names of the real-valued metrics that can be filtered on (e.g. by the EnsembleMetricFilter)
++	/// or otherwise extracted from this EnsembleMetric.  Must be implemented by derived classes.  (Can be empty list if
++	/// no real-valued metrics are computed.)
++	utility::vector1< std::string > const &
++	realvector_valued_metric_names() const override;
++
 +private: // Virtual functions overrides of private pure virtual functions from base class.
 +
 +	/// @brief Write the final report produced by this metric to a string.
@@ -3803,10 +4054,33 @@ index 00000000000..af62bfcba66
 +		std::string const & metric_name
 +	) const override;
 +
++	/// @brief Given a real vector-valued metric name, get the whole vector.
++	/// @details Must be implemented by derived classes.
++	utility::vector1< core::Real > const &
++	derived_get_realvector_metric_values_by_name(
++		std::string const & metric_name
++	) const override;
++
++	/// @brief Given a real vector-valued metric name, get an entry.
++	/// @details Must be implemented by derived classes.
++	core::Real
++	derived_get_realvector_metric_value_by_name(
++		std::string const & metric_name,
++		core::Size const vector_index
++	) const override;
++
 +	/// @brief Get the tracer for a derived class.
 +	/// @details Must be implemented for each derived class.
 +	basic::Tracer &
 +	get_derived_tracer() const override;
++
++	/// @brief Copy derived data from another EnsembleMetric of the same type.
++	/// @details Must throw if types don't match.  Must be implemented by derived classes.
++	/// @note Should NOT copy configuration data.
++	void
++	derived_copy_data(
++		EnsembleMetric const & src
++	) override;
 +
 +	/// @brief Reset the data collected by the derived classes.  Must be
 +	/// implemented by derived classes.
@@ -4022,10 +4296,10 @@ index 00000000000..0a0a3e83653
 +
 diff --git a/source/src/protocols/ensemble_metrics/util.cc b/source/src/protocols/ensemble_metrics/util.cc
 new file mode 100644
-index 00000000000..9ba0456f8c5
+index 00000000000..2709f69445c
 --- /dev/null
 +++ b/source/src/protocols/ensemble_metrics/util.cc
-@@ -0,0 +1,182 @@
+@@ -0,0 +1,184 @@
 +// -*- mode:c++;tab-width:2;indent-tabs-mode:t;show-trailing-whitespace:t;rm-trailing-spaces:t -*-
 +// vi: set ts=2 noet:
 +//
@@ -4093,13 +4367,14 @@ index 00000000000..9ba0456f8c5
 +	std::string const & rs_type,
 +	std::string const & description,
 +	utility::tag::AttributeList const & attributes
-+)
-+{
++) {
 +	utility::tag::XMLSchemaComplexTypeGeneratorOP ct_gen = EnsembleMetric::complex_type_generator_for_ensemble_metric(xsd);
++
++	std::string const citation_string( EnsembleMetricFactory::get_instance()->get_citation_humanreadable( rs_type ) );
 +
 +	ct_gen->complex_type_naming_func( & complex_type_name_for_ensemble_metric )
 +		.element_name( rs_type )
-+		.description( description )
++		.description( description + "\n\n" + citation_string )
 +		.add_attributes( attributes )
 +		.add_optional_name_attribute()
 +		.write_complex_type_to_schema( xsd );
@@ -4112,13 +4387,14 @@ index 00000000000..9ba0456f8c5
 +	std::string const & description,
 +	utility::tag::AttributeList const & attributes,
 +	utility::tag::XMLSchemaSimpleSubelementList const & subelements
-+)
-+{
++) {
 +	utility::tag::XMLSchemaComplexTypeGeneratorOP ct_gen = EnsembleMetric::complex_type_generator_for_ensemble_metric(xsd);
++
++	std::string const citation_string( EnsembleMetricFactory::get_instance()->get_citation_humanreadable( rs_type ) );
 +
 +	ct_gen->complex_type_naming_func( & complex_type_name_for_ensemble_metric )
 +		.element_name( rs_type )
-+		.description( description )
++		.description( description + "\n\n" + citation_string )
 +		.add_attributes( attributes )
 +		.set_subelements_repeatable( subelements )
 +		.add_optional_name_attribute()
@@ -4488,7 +4764,7 @@ index 92f7ef7bffc..272dd74b7db 100644
  #include <protocols/init/init.ResidueSelectorRegistrators.ihh>
  
 diff --git a/source/src/protocols/jd2/JobDistributor.cc b/source/src/protocols/jd2/JobDistributor.cc
-index 95389bc749e..060d6056c74 100644
+index 95389bc749e..86fa2c4be78 100644
 --- a/source/src/protocols/jd2/JobDistributor.cc
 +++ b/source/src/protocols/jd2/JobDistributor.cc
 @@ -27,6 +27,7 @@
@@ -4499,11 +4775,38 @@ index 95389bc749e..060d6056c74 100644
  
  // Project headers
  #include <core/pose/Pose.hh>
-@@ -293,17 +294,38 @@ void JobDistributor::go_main(protocols::moves::MoverOP mover)
+@@ -195,7 +196,7 @@ JobDistributor::JobDistributor(bool empty)
+ 	} else {
+ 		job_inputter_ = nullptr;
+ 		job_outputter_ = utility::pointer::make_shared< NoOutputJobOutputter >();
+-		parser_ = JobDistributorFactory::create_parser();
++		parser_ = JobDistributorFactory::create_parser( share_ensemble_metrics_across_jobs_ );
+ 		jobs_ = utility::pointer::make_shared< JobsContainer >();
+ 	}
+ }
+@@ -204,6 +205,8 @@ void JobDistributor::init_jd()
+ {
+ 	instance_ = this; //important so that calls to get_instance in JobInputters or JobOutputters don't lead to a infinite recursion
+ 
++	share_ensemble_metrics_across_jobs_ = basic::options::option[ basic::options::OptionKeys::jd2::share_ensemble_metrics_across_jobs ].value();
++
+ 	// are there batches?
+ 	populate_batch_list_from_cmd();
+ 	if ( batches_.size() > 0 ) {
+@@ -228,7 +231,7 @@ void JobDistributor::init_jd()
+ 
+ 	// have to initialize these AFTER BatchJobInputter->fill_jobs since a new batch might change options
+ 	job_outputter_ = JobDistributorFactory::create_job_outputter();
+-	parser_ = JobDistributorFactory::create_parser();
++	parser_ = JobDistributorFactory::create_parser( share_ensemble_metrics_across_jobs_ );
+ }
+ 
+ /// @details read -run:batches and put it into batches_ vector.
+@@ -293,17 +296,34 @@ void JobDistributor::go_main(protocols::moves::MoverOP mover)
  	core::Size last_batch_id = 0; //this will trigger a mover->fresh_instance if we run with batches
  	core::Size retries_this_job(0);
  	bool first_job(true);
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //For reporting at end.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //For reporting at end.
  
  	PROF_START( basic::JD2);
  
@@ -4513,11 +4816,11 @@ index 95389bc749e..060d6056c74 100644
 +
 +		//Reset collection on ensemble metrics that should be reset:
 +		if ( tried_jobs > 1 ) {
-+			for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : ensemble_metrics ) {
++			for ( std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP >::iterator it( ensemble_metrics.begin() ); it!=ensemble_metrics.end(); ++it ) {
 +				// If a metric has already been finalized (has already reported), we should reset
 +				// it so that it can collect new data:
-+				if ( metric->finalized() ) {
-+					metric->reset();
++				if ( it->second->finalized() ) {
++					it->second->reset();
 +				}
 +			}
 +		}
@@ -4530,24 +4833,20 @@ index 95389bc749e..060d6056c74 100644
  	} PROF_STOP( basic::JD2);
  
 +	//Report ensemble metrics:
-+	for ( protocols::ensemble_metrics::EnsembleMetricOP const & metric : ensemble_metrics ) {
-+		if ( ( !metric->finalized() ) && metric->reports_at_end() /*Skip metrics that have already reported, or which don't report at end.*/ ) {
-+			metric->produce_final_report();
-+		}
-+	}
++	finalize_ensemble_metrics( ensemble_metrics );
 +
  	note_all_jobs_finished();
  	if ( batches_.size() ) {
  		tr.Info << jobs_->size() << " jobs in last batch... in total ";
-@@ -454,6 +476,7 @@ bool JobDistributor::using_parser() const {
+@@ -454,6 +474,7 @@ bool JobDistributor::using_parser() const {
  bool
  JobDistributor::run_one_job(
  	protocols::moves::MoverOP & mover,
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  	time_t const allstarttime,
  	std::string & last_inner_job_tag,
  	std::string & last_output_tag,
-@@ -465,7 +488,7 @@ JobDistributor::run_one_job(
+@@ -465,7 +486,7 @@ JobDistributor::run_one_job(
  	using namespace basic::options;
  
  	protocols::moves::MoverOP mover_copy(mover);
@@ -4556,7 +4855,7 @@ index 95389bc749e..060d6056c74 100644
  	core::pose::Pose & pose = *pose_op;
  
  #ifdef BOINC_GRAPHICS
-@@ -632,6 +655,7 @@ JobDistributor::run_one_job(
+@@ -632,6 +653,7 @@ JobDistributor::run_one_job(
  			if ( first_job || ! option[OptionKeys::jd2::parse_script_once_only]() ) {
  				parser_->generate_mover( mover_copy, new_input,
  					"" /*empty xml_fname, this means go to options system*/,
@@ -4564,8 +4863,42 @@ index 95389bc749e..060d6056c74 100644
  					current_job_->input_tag(),
  					job_outputter_->output_name(current_job_),
  					guarantee_new_mover );
+@@ -943,6 +965,24 @@ void JobDistributor::set_current_job_by_index( core::Size curr_job_index )
+ 	current_job_id_ = curr_job_index;
+ }
+ 
++/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
++/// reported in-line, and which need to report at the end.)
++/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
++/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
++/*virtual*/
++void
++JobDistributor::finalize_ensemble_metrics(
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++) const {
++	if ( metrics.empty() ) return;
++	for ( std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP >::const_iterator it( metrics.begin() ); it != metrics.end(); ++it ) {
++		protocols::ensemble_metrics::EnsembleMetric & metric( *it->second );
++		if ( ( !metric.finalized() ) && metric.reports_at_end() /*Skip metrics that have already reported, or which don't report at end.*/ ) {
++			metric.produce_final_report();
++		}
++	}
++}
++
+ //////////////////////protected accessor functions////////////////////
+ core::Size JobDistributor::current_job_id() const
+ {
+@@ -1089,7 +1129,7 @@ void JobDistributor::load_new_batch()
+ 	// evaluation::PoseEvaluators const& evaluations( job_outputter->evaluators() );
+ 
+ 	job_outputter_ = JobDistributorFactory::create_job_outputter();
+-	parser_ = JobDistributorFactory::create_parser();
++	parser_ = JobDistributorFactory::create_parser( share_ensemble_metrics_across_jobs_ );
+ }
+ 
+ /// @brief Movers (or derived classes) may ask for the JobOutputter
 diff --git a/source/src/protocols/jd2/JobDistributor.hh b/source/src/protocols/jd2/JobDistributor.hh
-index 374a877f796..61d8b772111 100644
+index 374a877f796..05fbf9a1b71 100644
 --- a/source/src/protocols/jd2/JobDistributor.hh
 +++ b/source/src/protocols/jd2/JobDistributor.hh
 @@ -26,6 +26,7 @@
@@ -4576,16 +4909,79 @@ index 374a877f796..61d8b772111 100644
  
  // Project headers
  #include <protocols/moves/Mover.fwd.hh>
-@@ -304,6 +305,7 @@ protected:
+@@ -229,7 +230,18 @@ protected:
+ 	/// thread to change current_job_.
+ 	void set_current_job_by_index( core::Size curr_job_index );
+ 
++	/// @brief Finalize any ensemble metrics that need to be finalized.  (These are the ones that haven't
++	/// reported in-line, and which need to report at the end.)
++	/// @details May be overridden, e.g., to allow MPI collection in an MPI context.
++	/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
++	virtual
++	void
++	finalize_ensemble_metrics(
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > const & metrics
++	) const;
++
+ protected:
++
+ 	/// @brief this function updates the current_job_id_ and current_job_ fields.  The boolean return states whether or not
+ 	///a new job was obtained (if false, quit distributing!)
+ 	bool obtain_new_job( bool re_consider_current_job = false ); //if true we check if current_job is still selectable (after remove_bad_input)
+@@ -304,6 +316,7 @@ protected:
  	bool
  	run_one_job(
  		protocols::moves::MoverOP & mover,
-+		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  		time_t allstarttime,
  		std::string & last_inner_job_tag,
  		std::string & last_output_tag,
+@@ -459,6 +472,9 @@ private:
+ 	/// @brief all batches if present
+ 	utility::vector1< std::string > batches_;
+ 
++	/// @brief Share ensemble metrics across jobs?
++	bool share_ensemble_metrics_across_jobs_ = true;
++
+ };
+ 
+ }//jd2
+diff --git a/source/src/protocols/jd2/JobDistributorFactory.cc b/source/src/protocols/jd2/JobDistributorFactory.cc
+index 2f1a00ff37f..00f6b888053 100644
+--- a/source/src/protocols/jd2/JobDistributorFactory.cc
++++ b/source/src/protocols/jd2/JobDistributorFactory.cc
+@@ -150,10 +150,11 @@ JobDistributorFactory::create_job_outputter( JobOutputterOP default_jobout ) {
+ 
+ /// @details Create the RosettaScriptParser.  Determine if we need it down the road.
+ rosetta_scripts::RosettaScriptsParserOP
+-JobDistributorFactory::create_parser()
+-{
++JobDistributorFactory::create_parser(
++	bool const share_ensemble_metrics_across_jobs
++) {
+ 
+-	return utility::pointer::make_shared< rosetta_scripts::RosettaScriptsParser >();
++	return utility::pointer::make_shared< rosetta_scripts::RosettaScriptsParser >( share_ensemble_metrics_across_jobs );
+ 
+ }
+ 
+diff --git a/source/src/protocols/jd2/JobDistributorFactory.hh b/source/src/protocols/jd2/JobDistributorFactory.hh
+index dca13228bf3..d9b2607c1d0 100644
+--- a/source/src/protocols/jd2/JobDistributorFactory.hh
++++ b/source/src/protocols/jd2/JobDistributorFactory.hh
+@@ -47,7 +47,9 @@ public:
+ 
+ 	static
+ 	rosetta_scripts::RosettaScriptsParserOP
+-	create_parser();
++	create_parser(
++		bool const share_ensemble_metrics_across_jobs
++	);
+ 
+ };
+ 
 diff --git a/source/src/protocols/jd2/VectorPoseJobDistributor.cc b/source/src/protocols/jd2/VectorPoseJobDistributor.cc
-index 8e852a8b296..931c64e00bd 100644
+index 8e852a8b296..79a7a7d8bc8 100644
 --- a/source/src/protocols/jd2/VectorPoseJobDistributor.cc
 +++ b/source/src/protocols/jd2/VectorPoseJobDistributor.cc
 @@ -137,7 +137,7 @@ void VectorPoseJobDistributor::go_mpi( protocols::moves::MoverOP mover ) {
@@ -4601,7 +4997,7 @@ index 8e852a8b296..931c64e00bd 100644
  
  			RosettaScriptsParser parser;
  
-+			utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded
++			std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded
  			parser.generate_mover(
  				mover,
  				true,
@@ -4624,7 +5020,7 @@ index 8e852a8b296..931c64e00bd 100644
  			for ( core::Size ii = 1; ii <= working_poses.size(); ++ii ) {
  				current_pose_ = ii;
  
-+				utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded
++				std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded
  				parser.generate_mover(
  					mover,
  					true,
@@ -4634,6 +5030,24 @@ index 8e852a8b296..931c64e00bd 100644
  				);
  
  				protocols::rosetta_scripts::ParsedProtocolOP parsed_protocol =
+diff --git a/source/src/protocols/moves/mover_schemas.cc b/source/src/protocols/moves/mover_schemas.cc
+index 5a6168d0230..7ad51abff14 100644
+--- a/source/src/protocols/moves/mover_schemas.cc
++++ b/source/src/protocols/moves/mover_schemas.cc
+@@ -90,10 +90,12 @@ xsd_type_definition_w_attributes_and_single_subelement(
+ 		local_attrs + utility::tag::optional_name_attribute();
+ 	}
+ 
++	std::string const citation_string( protocols::moves::MoverFactory::get_instance()->get_citation_humanreadable( mover_type ) );
++
+ 	utility::tag::XMLSchemaComplexTypeGenerator ct_gen;
+ 	ct_gen.complex_type_naming_func( & complex_type_name_for_mover )
+ 		.element_name( mover_type )
+-		.description( description )
++		.description( description + "\n\n" + citation_string )
+ 		.add_attributes( local_attrs )
+ 		.set_subelements_single_appearance_optional( subelement )
+ 		.write_complex_type_to_schema( xsd );
 diff --git a/source/src/protocols/parser/EnsembleMetricLoader.cc b/source/src/protocols/parser/EnsembleMetricLoader.cc
 new file mode 100644
 index 00000000000..0526cf4c0bf
@@ -5088,7 +5502,7 @@ index f07efe6cb1f..f95e3deba0f 100644
  
  	void random_order_protocol(Pose & pose);
 diff --git a/source/src/protocols/rosetta_scripts/RosettaScriptsParser.cc b/source/src/protocols/rosetta_scripts/RosettaScriptsParser.cc
-index dfe9ccf7f5d..e003ea9d5ad 100644
+index dfe9ccf7f5d..9e9219d5099 100644
 --- a/source/src/protocols/rosetta_scripts/RosettaScriptsParser.cc
 +++ b/source/src/protocols/rosetta_scripts/RosettaScriptsParser.cc
 @@ -26,6 +26,7 @@
@@ -5099,47 +5513,79 @@ index dfe9ccf7f5d..e003ea9d5ad 100644
  
  // Project headers
  #include <core/pack/palette/PackerPalette.hh>
-@@ -140,7 +141,8 @@ RosettaScriptsParser::generate_mover(
+@@ -84,6 +85,7 @@
+ 
+ // option key includes
+ #include <basic/options/keys/parser.OptionKeys.gen.hh>
++#include <basic/options/keys/jd2.OptionKeys.gen.hh>
+ #include <basic/datacache/DataMap.hh>
+ 
+ namespace protocols {
+@@ -97,10 +99,22 @@ using namespace moves;
+ 
+ static basic::Tracer TR( "protocols.rosetta_scripts.RosettaScriptsParser" );
+ 
+-RosettaScriptsParser::RosettaScriptsParser()
++RosettaScriptsParser::RosettaScriptsParser() :
++	utility::VirtualBase()
+ {
+ 	set_recursion_limit( basic::options::option );
+ 	register_factory_prototypes();
++	share_ensemble_metrics_across_jobs_ = basic::options::option[ basic::options::OptionKeys::jd2::share_ensemble_metrics_across_jobs ].value();
++}
++
++RosettaScriptsParser::RosettaScriptsParser(
++	bool const share_ensemble_metrics_across_jobs
++) :
++	utility::VirtualBase()
++{
++	set_recursion_limit( basic::options::option );
++	register_factory_prototypes();
++	share_ensemble_metrics_across_jobs_ = share_ensemble_metrics_across_jobs;
+ }
+ 
+ 
+@@ -140,7 +154,8 @@ RosettaScriptsParser::generate_mover(
  	std::string const & current_output_name
  ){
  	TagCOP tag = create_tag_from_xml( xml_fname, basic::options::option );
 -	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, basic::options::option, current_input_name, current_output_name );
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
 +	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, basic::options::option, ensemble_metrics, current_input_name, current_output_name );
  	return in_mover;
  }
  
-@@ -153,7 +155,8 @@ RosettaScriptsParser::generate_mover(
+@@ -153,7 +168,8 @@ RosettaScriptsParser::generate_mover(
  	std::string const & current_output_name
  ){
  	TagCOP tag = create_tag_from_xml( xml_fname, script_vars);
 -	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, basic::options::option, current_input_name, current_output_name );
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
 +	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, basic::options::option, ensemble_metrics, current_input_name, current_output_name );
  	return in_mover;
  }
  
-@@ -225,7 +228,8 @@ RosettaScriptsParser::generate_mover(
+@@ -225,7 +241,8 @@ RosettaScriptsParser::generate_mover(
  	basic::resource_manager::ResourceManagerOP resource_manager
  ) {
  	TagCOP tag = create_tag_from_xml( xml_fname, options);
 -	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, options, current_input_name, current_output_name, xml_objects, resource_manager );
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
 +	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, options, ensemble_metrics, current_input_name, current_output_name, xml_objects, resource_manager );
  	return in_mover;
  }
  
-@@ -240,7 +244,8 @@ RosettaScriptsParser::generate_mover_xml_string(
+@@ -240,7 +257,8 @@ RosettaScriptsParser::generate_mover_xml_string(
  ) {
  
  	TagCOP tag = create_tag_from_xml_string( xml_text, options);
 -	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, options, current_input_name, current_output_name, xml_objects );
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
 +	ParsedProtocolOP in_mover = generate_mover_for_protocol( tag, options, ensemble_metrics, current_input_name, current_output_name, xml_objects );
  	return in_mover;
  }
  
-@@ -339,6 +344,32 @@ RosettaScriptsParser::create_tag_from_xml( std::string const & xml_fname, utilit
+@@ -339,6 +357,32 @@ RosettaScriptsParser::create_tag_from_xml( std::string const & xml_fname, utilit
  	}
  }
  
@@ -5162,7 +5608,7 @@ index dfe9ccf7f5d..e003ea9d5ad 100644
 +	XmlObjectsOP xml_objects /*= nullptr*/,
 +	basic::resource_manager::ResourceManagerOP resource_manager /*= nullptr*/
 +) {
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded.
 +	return generate_mover_for_protocol(
 +		protocol_tag, options, ensemble_metrics, current_input_name,
 +		current_output_name, xml_objects, resource_manager
@@ -5172,32 +5618,32 @@ index dfe9ccf7f5d..e003ea9d5ad 100644
  void
  RosettaScriptsParser::initialize_data_map(
  	basic::datacache::DataMap & data,
-@@ -428,6 +459,7 @@ RosettaScriptsParser::generate_mover(
+@@ -428,6 +472,7 @@ RosettaScriptsParser::generate_mover(
  	moves::MoverOP & in_mover,
  	bool new_input,
  	std::string const & xml_fname,
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  	std::string const & current_input_name,
  	std::string const & current_output_name,
  	bool guarantee_new_mover
-@@ -441,7 +473,7 @@ RosettaScriptsParser::generate_mover(
+@@ -441,7 +486,7 @@ RosettaScriptsParser::generate_mover(
  
  	TagCOP tag = create_tag_from_xml( dock_design_filename, basic::options::option);
  
 -	in_mover =  generate_mover_for_protocol( tag, basic::options::option, current_input_name, current_output_name );
-+	in_mover =  generate_mover_for_protocol( tag, basic::options::option, ensemble_metrics, current_input_name, current_output_name );
++	in_mover = generate_mover_for_protocol( tag, basic::options::option, ensemble_metrics, current_input_name, current_output_name );
  
  }
  
-@@ -449,6 +481,7 @@ ParsedProtocolOP
+@@ -449,6 +494,7 @@ ParsedProtocolOP
  RosettaScriptsParser::generate_mover_for_protocol(
  	TagCOP tag,
  	utility::options::OptionCollection const & options,
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  	std::string const & current_input_name /* = "" */,
  	std::string const & current_output_name /* = "" */,
  	XmlObjectsOP xml_objects,
-@@ -473,7 +506,7 @@ RosettaScriptsParser::generate_mover_for_protocol(
+@@ -473,7 +519,7 @@ RosettaScriptsParser::generate_mover_for_protocol(
  		}
  	}
  
@@ -5206,15 +5652,15 @@ index dfe9ccf7f5d..e003ea9d5ad 100644
  }
  
  ParsedProtocolOP
-@@ -481,6 +514,7 @@ RosettaScriptsParser::generate_mover_for_protocol(
+@@ -481,6 +527,7 @@ RosettaScriptsParser::generate_mover_for_protocol(
  	utility::tag::TagCOP tag,
  	basic::datacache::DataMap & data,
  	utility::options::OptionCollection const &,
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  	XmlObjectsOP xml_objects,
  	basic::resource_manager::ResourceManagerOP resource_manager
  ) {
-@@ -523,6 +557,7 @@ RosettaScriptsParser::generate_mover_for_protocol(
+@@ -523,6 +570,7 @@ RosettaScriptsParser::generate_mover_for_protocol(
  			DataLoaderOP loader = DataLoaderFactory::get_instance()->newDataLoader( curr_tag->getName() );
  			loader->load_data( curr_tag, data );
  		}
@@ -5222,55 +5668,80 @@ index dfe9ccf7f5d..e003ea9d5ad 100644
  		TR.flush();
  	}
  
-@@ -548,6 +583,12 @@ RosettaScriptsParser::generate_mover_for_protocol(
+@@ -548,6 +596,33 @@ RosettaScriptsParser::generate_mover_for_protocol(
  		xml_objects->init_from_maps( data );
  	}
  
-+	if ( data.has_type( "EnsembleMetric" ) ) {
++	if ( data.has_type( "EnsembleMetric" ) && (ensemble_metrics.empty() || !share_ensemble_metrics_across_jobs_) ) {
 +		ensemble_metrics = get_ensemble_metrics_to_report_at_end( data );
-+	} else {
++	} else if ( !data.has_type( "EnsembleMetric" ) ) {
++		runtime_assert( ensemble_metrics.empty() || !share_ensemble_metrics_across_jobs_ ); //Should be true.
 +		ensemble_metrics.clear();
++	} else {
++		//Check that we've got the same ensemble metrics defined, but then update the new ones with the
++		//data from the old ones.
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > new_ensemble_metrics(
++			get_ensemble_metrics_to_report_at_end( data )
++		);
++		std::string const errmsg1(
++			"Error in RosettaScriptsParser::generate_mover_for_protocol():  "
++			"Could not recycle ensemble metrics from one job to another!  Try running with "
++			"-jd2:share_ensemble_metrics_across_jobs false."
++		);
++		runtime_assert_string_msg( new_ensemble_metrics.size() == ensemble_metrics.size(), errmsg1 );
++		for ( std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP >::iterator it( new_ensemble_metrics.begin() ); it!= new_ensemble_metrics.end(); ++it ) {
++			runtime_assert_string_msg( ensemble_metrics.count( it->first ) == 1, errmsg1 );
++
++			*(it->second) = *(ensemble_metrics[it->first]);
++			ensemble_metrics[it->first]->reset();
++		}
++
++		ensemble_metrics = new_ensemble_metrics;
 +	}
 +
  	return protocol;
  }
  
-@@ -643,7 +684,8 @@ RosettaScriptsParser::read_in_and_recursively_replace_includes(
+@@ -643,7 +718,8 @@ RosettaScriptsParser::read_in_and_recursively_replace_includes(
  ParsedProtocolOP
  RosettaScriptsParser::parse_protocol_tag( TagCOP protocol_tag, utility::options::OptionCollection const & options)
  {
 -	return generate_mover_for_protocol( protocol_tag, options);
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Will be discarded.
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Will be discarded.
 +	return generate_mover_for_protocol( protocol_tag, options, ensemble_metrics );
  }
  
  void
-@@ -1080,6 +1122,23 @@ RosettaScriptsParser::register_factory_prototypes()
+@@ -1080,6 +1156,27 @@ RosettaScriptsParser::register_factory_prototypes()
  	}
  }
  
 +/// @brief Given a datamap, find all the ensemble metrics.
++/// @returns A map of ensemble metric XML name -> ensemble metric owning pointer.
 +/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
-+utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP >
-+RosettaScriptsParser::get_ensemble_metrics_to_report_at_end( basic::datacache::DataMap & data ) const {
++std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP >
++RosettaScriptsParser::get_ensemble_metrics_to_report_at_end(
++	basic::datacache::DataMap & data
++) const {
 +	using namespace protocols::ensemble_metrics;
 +
 +	std::string const errmsg( "Error in RosettaScriptsParser::get_ensemble_metrics_to_report_at_end(): " );
-+	utility::vector1< EnsembleMetricOP > outvec;
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > outmap;
 +	std::map< std::string, utility::VirtualBaseOP > const & catmap( data.category_map( "EnsembleMetric" ) );
 +	for ( std::map< std::string, utility::VirtualBaseOP >::const_iterator it( catmap.begin() ); it != catmap.end(); ++it ) {
 +		EnsembleMetricOP current( utility::pointer::dynamic_pointer_cast< EnsembleMetric >( it->second ) );
 +		runtime_assert( current != nullptr );
-+		outvec.push_back(current);
++		runtime_assert( outmap.count( it->first ) == 0 );
++		outmap[ it->first ] = current;
 +	}
-+	return outvec;
++	return outmap;
 +}
 +
  /// @brief Is the current tag one with a slash at the end?
  /// @details Starting from endpos, crawl backward until we hit a
  /// '/' or a non-whitespace character.  Return true if and only
 diff --git a/source/src/protocols/rosetta_scripts/RosettaScriptsParser.hh b/source/src/protocols/rosetta_scripts/RosettaScriptsParser.hh
-index 159b678afb8..eea952a095b 100644
+index 159b678afb8..e788cab145a 100644
 --- a/source/src/protocols/rosetta_scripts/RosettaScriptsParser.hh
 +++ b/source/src/protocols/rosetta_scripts/RosettaScriptsParser.hh
 @@ -22,6 +22,9 @@
@@ -5283,23 +5754,43 @@ index 159b678afb8..eea952a095b 100644
  // Project Headers
  #include <core/pose/Pose.fwd.hh>
  #include <core/types.hh>
-@@ -250,6 +253,7 @@ public:
+@@ -42,6 +45,7 @@
+ 
+ // C++ headers
+ #include <set>
++#include <map>
+ 
+ namespace protocols {
+ namespace rosetta_scripts {
+@@ -81,8 +85,11 @@ public:
+ 	typedef std::pair<std::string, std::string> ImportTagName;
+ 
+ public:
++
+ 	RosettaScriptsParser();
+ 
++	RosettaScriptsParser( bool const share_ensemble_metrics_across_jobs );
++
+ 	~RosettaScriptsParser() override;
+ 
+ 	/// @brief Convenience function to construct a ParsedProtocol from a file
+@@ -250,6 +257,7 @@ public:
  	generate_mover_for_protocol(
  		utility::tag::TagCOP protocol_tag,
  		utility::options::OptionCollection const & options,
-+		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  		std::string const & current_input_name = "",
  		std::string const & current_output_name = "",
  		XmlObjectsOP xml_objects = nullptr,
-@@ -271,6 +275,7 @@ public:
+@@ -271,6 +279,7 @@ public:
  		utility::tag::TagCOP protocol_tag,
  		basic::datacache::DataMap & data,
  		utility::options::OptionCollection const & options,
-+		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  		XmlObjectsOP xml_objects = nullptr,
  		basic::resource_manager::ResourceManagerOP resource_manager = nullptr
  	);
-@@ -293,7 +298,7 @@ public:
+@@ -293,7 +302,7 @@ public:
  		std::string const & current_output_name = "",
  		XmlObjectsOP xml_objects = nullptr,
  		basic::resource_manager::ResourceManagerOP resource_manager = nullptr
@@ -5308,7 +5799,7 @@ index 159b678afb8..eea952a095b 100644
  
  	/// @brief Initialize the passed datamap with the standard set of pre-defined RosettaScripts objects
  	void
-@@ -413,15 +418,18 @@ public:
+@@ -413,15 +422,18 @@ public:
  	///@brief
  	/// Original, JD2-compatible mover generating function.
  	///
@@ -5324,22 +5815,33 @@ index 159b678afb8..eea952a095b 100644
  		MoverOP & mover,
  		bool new_input,
  		std::string const & xml_file,
-+		utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
++		std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > & ensemble_metrics,
  		std::string const & current_input_name = "",
  		std::string const & current_output_name = "",
  		bool guarantee_new_mover = false
-@@ -443,6 +451,11 @@ public:
+@@ -443,6 +455,12 @@ public:
  
  private: //Methods
  
 +	/// @brief Given a datamap, find all the ensemble metrics.
++	/// @returns A map of ensemble metric XML name -> ensemble metric owning pointer.
 +	/// @author Vikram K. Mulligan (vmulligan@flatironinstitute.org).
-+	utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP >
++	std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP >
 +	get_ensemble_metrics_to_report_at_end( basic::datacache::DataMap & data ) const;
 +
  	/// @brief Is the current tag one with a slash at the end?
  	/// @details Starting from endpos, crawl backward until we hit a
  	/// '/' or a non-whitespace character.  Return true if and only
+@@ -486,6 +504,9 @@ private: //Varaibles
+ 	core::pose::PoseOP native_pose_ = nullptr; //Loaded from options and added to datamap if present
+ 	utility::options::OptionCollectionCOP local_options_ = nullptr; //Passed to datamap for local options access for RosettaScript elements.
+ 
++	/// @brief Should ensemble metrics be shared across jobs?
++	bool share_ensemble_metrics_across_jobs_ = true;
++
+ }; // Parser
+ 
+ } // namespace rosetta_scripts
 diff --git a/source/src/protocols/rosetta_scripts/XmlObjects.cc b/source/src/protocols/rosetta_scripts/XmlObjects.cc
 index e97894b6c37..2b2b9292758 100644
 --- a/source/src/protocols/rosetta_scripts/XmlObjects.cc
@@ -5795,7 +6297,7 @@ index 4605a3363c0..b83fe701cee 100644
  			outstream << failed_components[i] << "\n";
  		}
 diff --git a/source/src/protocols/rpc/rpc.cc b/source/src/protocols/rpc/rpc.cc
-index 09651513a23..da5f5c88e24 100644
+index 09651513a23..0bcc6789ba9 100644
 --- a/source/src/protocols/rpc/rpc.cc
 +++ b/source/src/protocols/rpc/rpc.cc
 @@ -232,7 +232,8 @@ void JSON_RPC::run(){
@@ -5803,7 +6305,7 @@ index 09651513a23..da5f5c88e24 100644
  			protocols::rosetta_scripts::RosettaScriptsParser rsp;
  			protocols::moves::MoverOP protocol;
 -			rsp.generate_mover( protocol, true, "script.xml" );
-+			utility::vector1< protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded
++			std::map< std::string, protocols::ensemble_metrics::EnsembleMetricOP > ensemble_metrics; //Discarded
 +			rsp.generate_mover( protocol, true, "script.xml", ensemble_metrics );
  			protocol->apply( outputpose_ );
  		}
